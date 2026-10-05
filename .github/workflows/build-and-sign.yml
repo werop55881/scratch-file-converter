@@ -14,8 +14,8 @@ jobs:
     outputs:
       artifact-id: ${{ steps.upload-unsigned.outputs.artifact-id }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: '3.14'
       - name: Install
@@ -24,7 +24,7 @@ jobs:
         run: ruff check .
       - name: Test
         # test_c needs zig + SDL2 headers; re-enable once the runner has them
-        run: pytest --ignore=tests/test_c.py
+        run: python -m pytest --ignore=tests/test_c.py
       - name: Build GUI exe
         run: pyinstaller Sb3ConvGui.spec --noconfirm
       - name: Upload unsigned artifact
@@ -40,7 +40,7 @@ jobs:
     if: ${{ vars.SIGNPATH_ENABLED == 'true' }}
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Submit signing request
         uses: signpath/github-action-submit-signing-request@v3
         with:
