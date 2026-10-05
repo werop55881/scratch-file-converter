@@ -1,0 +1,55 @@
+[project]
+name = "scratchfileconverter"
+version = "0.1.0"
+description = "Convert Scratch .sb3 projects into runnable Python (pygame), JavaScript and more"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "pygame-ce>=2.5.8",
+    "sv-ttk>=2.5",
+    "resvg-py>=0.5",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8",
+    "pytest-cov",
+    "ruff",
+]
+package = [
+    "pyinstaller>=6",
+]
+
+[project.scripts]
+sb3conv = "sb3conv.cli:main"
+sb3conv-gui = "sb3conv.gui:main"
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["sb3conv*"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+extend-exclude = [".ruff_cache", ".pytest_cache", "dist", "build", "game/star-game-py", "game/star-game-run"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM", "C4"]
+ignore = ["E501"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["sb3conv"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q --strict-markers"
+markers = [
+    "slow: tests that run a game loop",
+]
+
+[tool.coverage.run]
+source = ["sb3conv"]
+branch = true

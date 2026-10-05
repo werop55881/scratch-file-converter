@@ -1,0 +1,282 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>BOOT</title>
+<style>html,body{margin:0;padding:0;overflow:hidden;background:#fff}</style>
+</head>
+<body>
+<div id="app" style="width:1024px;height:768px"></div>
+
+<script>
+(function () {
+    window.__errors = [];
+    window.__log = [];
+    var fatal = function (msg) {
+        var s = String(msg);
+        if (window.__errors.indexOf(s) === -1) window.__errors.push(s);
+        if (document.title.indexOf('JSERROR') !== 0) {
+            document.title = 'JSERROR ' + s.slice(0, 300);
+        }
+    };
+    window.__fatal = fatal;
+
+    var origError = console.error;
+    console.error = function () {
+        var s = Array.prototype.map.call(arguments, function (a) {
+            try { return (a && a.stack) || String(a); } catch (e) { return '?'; }
+        }).join(' ');
+        window.__log.push('console.error: ' + s);
+        if (/The above error occurred in/.test(s) || /Uncaught/.test(s)) {
+            fatal('React component error: ' + s);
+        }
+        origError.apply(console, arguments);
+    };
+    var origWarn = console.warn;
+    console.warn = function () {
+        var s = Array.prototype.map.call(arguments, function (a) {
+            try { return String(a); } catch (e) { return '?'; }
+        }).join(' ');
+        window.__log.push('console.warn: ' + s);
+        origWarn.apply(console, arguments);
+    };
+
+    window.addEventListener('error', function (e) {
+        fatal('onerror: ' + e.message + ' @ ' + (e.filename || '') + ':' + e.lineno +
+            (e.error ? ' :: ' + ((e.error && e.error.stack) || e.error) : ''));
+    });
+    window.addEventListener('unhandledrejection', function (e) {
+        fatal('unhandledrejection: ' + ((e.reason && e.reason.stack) || e.reason));
+    });
+
+    var watchdog = setInterval(function () {
+        try {
+            if (document.body &&
+                document.body.innerText.indexOf('Oops! Something went wrong') >= 0) {
+                clearInterval(watchdog);
+                fatal('GUI ErrorBoundary displayed: "Oops! Something went wrong."');
+            }
+        } catch (e) { /* body not ready */ }
+    }, 400);
+
+    // Patch file-input clicks: inject star-game.sb3 via DataTransfer so the real
+    // SBFileUploaderHOC -> FileReader -> vm.loadProject path runs without an OS dialog.
+    window.__fileInjected = false;
+    var origInputClick = HTMLInputElement.prototype.click;
+    HTMLInputElement.prototype.click = function () {
+        if (this.type === 'file' && /sb/i.test(this.accept || '')) {
+            var input = this;
+            fetch('star-game.sb3')
+                .then(function (r) { return r.arrayBuffer(); })
+                .then(function (ab) {
+                    var dt = new DataTransfer();
+                    dt.items.add(new File([ab], 'star-game.sb3', {type: 'application/zip'}));
+                    input.files = dt.files;
+                    window.__fileInjected = true;
+                    input.dispatchEvent(new Event('change', {bubbles: true}));
+                })
+                .catch(function (e) {
+                    fatal('fileinject: ' + ((e && e.stack) || e));
+                });
+            return;
+        }
+        return origInputClick.apply(this, arguments);
+    };
+})();
+</script>
+
+<script src="node_modules/react/umd/react.development.js"></script>
+<script src="node_modules/react-dom/umd/react-dom.development.js"></script>
+<script>
+window.react = React;
+window['react-dom'] = ReactDOM;
+</script>
+<script src="node_modules/scratch-gui/dist/scratch-gui.js"></script>
+<script>
+(function () {
+    try {
+        var lib = window.GUI;
+        var GUI = lib.default || lib;
+        var root = document.getElementById('app');
+        lib.setAppElement(root);
+        var Wrapped = lib.AppStateHOC(GUI);
+        var instance = ReactDOM.render(React.createElement(Wrapped, {canSave: false}), root);
+        window.__guiStore = instance.store;
+        window.__vm = instance.store.getState().scratchGui.vm;
+        window.__React = React;
+        window.__ReactDOM = ReactDOM;
+
+        // helpers for the driver
+        window.__clickByText = function (txt) {
+            var all = Array.prototype.slice.call(document.querySelectorAll('*'))
+                .filter(function (e) {
+                    try {
+                        return e.textContent.trim() === txt &&
+                            e.getClientRects().length > 0;
+                    } catch (err) {
+                        return false;
+                    }
+                });
+            if (!all.length) return false;
+            all.sort(function (a, b) {
+                return a.getElementsByTagName('*').length - b.getElementsByTagName('*').length;
+            });
+            var el = all[0];
+            // full mouse sequence: some menu items open on mouseUp, others onClick
+            try {
+                el.dispatchEvent(new MouseEvent('mousedown', {bubbles: true, cancelable: true, view: window}));
+                el.dispatchEvent(new MouseEvent('mouseup', {bubbles: true, cancelable: true, view: window}));
+            } catch (err) { /* older engine */ }
+            el.click();
+            return true;
+        };
+        window.__menuDump = function () {
+            var bars = document.querySelectorAll('[class*="menu-bar"], nav');
+            var out = [];
+            Array.prototype.forEach.call(bars, function (b) {
+                out.push('BAR[' + b.className.slice(0, 60) + ']: ' +
+                    Array.prototype.map.call(
+                        b.querySelectorAll('*'),
+                        function (e) {
+                            return (e.className && String(e.className).slice(0, 30)) +
+                                '="' + e.textContent.trim().slice(0, 30) + '"';
+                        }
+                    ).join(' | ').slice(0, 1200));
+            });
+            return out.join('\n') || 'no menu bar found';
+        };
+        // rects for trusted CDP clicks
+        window.__rectByText = function (txt) {
+            var all = Array.prototype.slice.call(document.querySelectorAll('*'))
+                .filter(function (e) {
+                    try {
+                        return e.textContent.trim() === txt &&
+                            e.getClientRects().length > 0;
+                    } catch (err) {
+                        return false;
+                    }
+                });
+            if (!all.length) return null;
+            all.sort(function (a, b) {
+                return a.getElementsByTagName('*').length - b.getElementsByTagName('*').length;
+            });
+            var r = all[0].getBoundingClientRect();
+            return {x: Math.round(r.left + r.width / 2), y: Math.round(r.top + r.height / 2)};
+        };
+        window.__rectBySel = function (sel) {
+            var els = Array.prototype.slice.call(document.querySelectorAll(sel))
+                .filter(function (e) { return e.getClientRects().length > 0; });
+            if (!els.length) return null;
+            var r = els[0].getBoundingClientRect();
+            return {x: Math.round(r.left + r.width / 2), y: Math.round(r.top + r.height / 2)};
+        };
+        window.__inputState = function () {
+            var i = document.querySelector('input[type=file]');
+            return i ? 'files=' + i.files.length : 'gone';
+        };
+        // stage->client mapping for game clicks (stage -240..240 / -180..180)
+        window.__stageClick = function (sx, sy) {
+            var c = null;
+            var list = document.querySelectorAll('canvas');
+            for (var i = 0; i < list.length; i++) {
+                if (list[i].getClientRects().length > 0) { c = list[i]; break; }
+            }
+            if (!c) return null;
+            var r = c.getBoundingClientRect();
+            return {
+                x: Math.round(r.left + ((sx + 240) / 480) * r.width),
+                y: Math.round(r.top + ((180 - sy) / 360) * r.height)
+            };
+        };
+        // diagnostic: what is under a stage coordinate?
+        window.__monRects = function () {
+            var out = Array.prototype.map.call(
+                document.querySelectorAll('[class*="monitor"], [class*="stage-wrapper"], [class*="stage_overlay"], [class*="stage_container"]'),
+                function (e) {
+                    var r = e.getBoundingClientRect();
+                    if (r.width === 0 && r.height === 0) return null;
+                    return String(e.className).slice(0, 36) + ' @' +
+                        Math.round(r.left) + ',' + Math.round(r.top) + ' ' +
+                        Math.round(r.width) + 'x' + Math.round(r.height);
+                }
+            ).filter(Boolean);
+            return out;
+        };
+        window.__canvases = function () {
+            return Array.prototype.map.call(
+                document.querySelectorAll('canvas'),
+                function (c) {
+                    var r = c.getBoundingClientRect();
+                    return String(c.className || '(no class)').slice(0, 40) + ' @' +
+                        Math.round(r.left) + ',' + Math.round(r.top) + ' ' +
+                        Math.round(r.width) + 'x' + Math.round(r.height) +
+                        (c.getClientRects().length ? '' : ' HIDDEN');
+                }
+            );
+        };
+        window.__targetsPos = function (name) {
+            var vm = window.__vm;
+            if (!vm) return [];
+            return vm.runtime.targets
+                .filter(function (t) { return t.getName() === name; })
+                .map(function (t) {
+                    return {
+                        x: Math.round(t.x),
+                        y: Math.round(t.y),
+                        vis: t.visible,
+                        clone: !t.isOriginal,
+                        drawable: t.drawableID
+                    };
+                });
+        };
+        window.__diag = function (sx, sy) {
+            var c = window.__stageClick(sx, sy);
+            var vm = window.__vm;
+            var out = {stage: [sx, sy], client: c};
+            if (!c || !vm || !vm.renderer) return out;
+            var el = document.elementFromPoint(c.x, c.y);
+            out.element = el ? (el.tagName + '.' + String(el.className || '').slice(0, 40)) : null;
+            try {
+                // pick() expects canvas-local CSS px, not viewport px
+                var cl = null;
+                var cs = document.querySelectorAll('canvas');
+                for (var i = 0; i < cs.length; i++) {
+                    if (cs[i].getClientRects().length > 0) { cl = cs[i]; break; }
+                }
+                var cr = cl.getBoundingClientRect();
+                var id = vm.renderer.pick(c.x - cr.left, c.y - cr.top);
+                var t = null;
+                vm.runtime.targets.forEach(function (tg) {
+                    if (tg.drawableID === id) t = tg;
+                });
+                out.pick = {drawable: id, target: t ? t.getName() : null};
+            } catch (e) {
+                out.pick = 'err: ' + e.message;
+            }
+            return out;
+        };
+        window.__stats = function () {
+            var vm = window.__vm;
+            if (!vm || !vm.runtime) return {error: 'no vm'};
+            var stage = vm.runtime.getTargetForStage();
+            return {
+                targets: vm.runtime.targets.length,
+                clones: vm.runtime.targets.filter(function (t) { return !t.isOriginal; }).length,
+                alive: vm.runtime.threads.filter(function (t) { return t.status !== 4; }).length,
+                vars: stage ? Object.values(stage.variables).map(function (v) {
+                    return v.name + '=' + v.value;
+                }).join(' ') : 'no stage',
+                sprites: vm.runtime.targets.map(function (t) {
+                    return t.getName() + '[' + t.currentCostume + ']';
+                }).join(' ')
+            };
+        };
+
+        document.title = 'MOUNTED';
+    } catch (e) {
+        window.__fatal('mount: ' + ((e && e.stack) || e));
+    }
+})();
+</script>
+</body>
+</html>

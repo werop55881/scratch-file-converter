@@ -1,0 +1,59 @@
+name: build-and-sign
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: windows-latest
+    outputs:
+      artifact-id: ${{ steps.upload-unsigned.outputs.artifact-id }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.14'
+      - name: Install
+        run: pip install -e ".[dev,package]"
+      - name: Lint
+        run: ruff check .
+      - name: Test
+        # test_c needs zig + SDL2 headers; re-enable once the runner has them
+        run: pytest --ignore=tests/test_c.py
+      - name: Build GUI exe
+        run: pyinstaller Sb3ConvGui.spec --noconfirm
+      - name: Upload unsigned artifact
+        id: upload-unsigned
+        uses: actions/upload-artifact@v7
+        with:
+          name: sb3conv-gui-unsigned-${{ github.run_id }}
+          path: dist/sb3conv-gui.exe
+          if-no-files-found: error
+
+  sign:
+    needs: build
+    if: ${{ vars.SIGNPATH_ENABLED == 'true' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Submit signing request
+        uses: signpath/github-action-submit-signing-request@v3
+        with:
+          api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
+          organization-id: ${{ secrets.SIGNPATH_ORGANIZATION_ID }}
+          project-slug: ${{ secrets.SIGNPATH_PROJECT_SLUG }}
+          signing-policy-slug: ${{ secrets.SIGNPATH_SIGNING_POLICY_SLUG }}
+          github-artifact-id: ${{ needs.build.outputs.artifact-id }}
+          wait-for-completion: true
+          output-artifact-directory: signed-artifact
+      - name: Upload signed artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: sb3conv-gui-signed-${{ github.run_id }}
+          path: signed-artifact
+          if-no-files-found: error

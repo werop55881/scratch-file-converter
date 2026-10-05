@@ -1,0 +1,137 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>BOOT</title>
+</head>
+<body style="margin:0;background:#111">
+<canvas id="stage" width="480" height="360" style="display:block"></canvas>
+<pre id="log" style="color:#7f7;font:11px monospace;max-height:40vh;overflow:auto"></pre>
+
+<script src="node_modules/jszip/dist/jszip.min.js"></script>
+<script src="node_modules/scratch-storage/dist/web/scratch-storage.js"></script>
+<script src="node_modules/scratch-vm/dist/web/scratch-vm.js"></script>
+<script src="node_modules/scratch-render/dist/web/scratch-render.js"></script>
+<script src="node_modules/scratch-svg-renderer/dist/web/scratch-svg-renderer.js"></script>
+<script src="scratch-audio.web.js"></script>
+<script>
+(function () {
+    var errors = [];
+    window.__errors = errors;
+
+    function fail(msg) {
+        var s = String((msg && msg.stack) || msg).replace(/[\r\n]+/g, ' ~ ');
+        errors.push(s);
+        var el = document.getElementById('log');
+        el.textContent += 'ERROR: ' + s + '\n';
+        if (errors.length === 1) {
+            document.title = 'JSERROR ' + s.slice(0, 400);
+        }
+    }
+    window.addEventListener('error', function (e) {
+        fail(e.message + ' @ ' + (e.filename || '') + ':' + e.lineno + (e.error ? ' :: ' + e.error.stack : ''));
+    });
+    window.addEventListener('unhandledrejection', function (e) {
+        fail('unhandledrejection: ' + ((e.reason && e.reason.stack) || e.reason));
+    });
+
+    function log(m) {
+        document.getElementById('log').textContent += m + '\n';
+    }
+
+    // hash: #runSec[,x,y,clickSec,x,y,clickSec...]
+    var hash = (location.hash || '').replace(/^#/, '');
+    var parts = hash ? hash.split(',').map(Number) : [];
+    var RUN_SEC = parts.length && isFinite(parts[0]) && parts[0] > 0 ? parts[0] : 45;
+    var clicks = [];
+    for (var i = 1; i + 2 < parts.length; i += 3) {
+        if (isFinite(parts[i])) clicks.push({x: parts[i], y: parts[i + 1], sec: parts[i + 2]});
+    }
+
+    async function main() {
+        log('fetching star-game.sb3 ...');
+        var resp = await fetch('star-game.sb3');
+        var buf = await resp.arrayBuffer();
+        var zip = await JSZip.loadAsync(buf);
+
+        var SS = window.ScratchStorage;
+        var storage = new SS.ScratchStorage();
+        var AssetType = SS.AssetType;
+        storage.addWebStore(Object.values(AssetType), async function (assetId, dataFormat) {
+            var entry = zip.file(assetId + '.' + dataFormat);
+            if (!entry) return null;
+            return await entry.async('arraybuffer');
+        });
+
+        var vm = new window.VirtualMachine();
+        window.__vm = vm;
+        vm.attachStorage(storage);
+
+        var canvas = document.getElementById('stage');
+        var renderer = new window.ScratchRender(canvas, -240, 240, -180, 180);
+        vm.attachRenderer(renderer);
+        vm.attachAudioEngine(new window.ScratchAudio());
+        vm.attachV2BitmapAdapter(new window.ScratchSVGRenderer.BitmapAdapter());
+
+        document.title = 'LOADING';
+        log('loading project ...');
+        await vm.loadProject(buf.slice(0));
+        log('LOADED: targets=' + vm.runtime.targets.length +
+            ' monitors=' + (vm.runtime.monitorBlocks && vm.runtime.monitorBlocks.runtime ? Object.keys(vm.runtime.monitorBlocks.runtime.monitorBlocks || {}).length : '?'));
+
+        document.title = 'RUNNING';
+        log('green flag @ RUN_SEC=' + RUN_SEC + ' clicks=' + clicks.length);
+        vm.greenFlag();
+        vm.runtime.start();
+
+        var t0 = Date.now();
+        var clickDone = {};
+        var stats = null;
+        var interval = setInterval(function () {
+            try {
+                var elapsed = (Date.now() - t0) / 1000;
+                for (var c = 0; c < clicks.length; c++) {
+                    if (!clickDone[c] && elapsed >= clicks[c].sec) {
+                        clickDone[c] = true;
+                        var ct = clicks[c];
+                        // stage coords -> client px (canvas is 480x360, stage is +/-240 x +/-180)
+                        var mx = ct.x + 240;
+                        var my = 180 - ct.y;
+                        vm.postIOData('mouse', {x: mx, y: my, canvasWidth: 480, canvasHeight: 360, isDown: true, button: 'left', timestamp: Date.now()});
+                        vm.postIOData('mouse', {x: mx, y: my, canvasWidth: 480, canvasHeight: 360, isDown: false, timestamp: Date.now()});
+                        log('CLICK stage(' + ct.x + ',' + ct.y + ')->client(' + mx + ',' + my + ') @' + elapsed.toFixed(1) + 's');
+                    }
+                }
+                if (errors.length) {
+                    clearInterval(interval);
+                    return;
+                }
+                if (elapsed >= RUN_SEC) {
+                    clearInterval(interval);
+                    var stage = vm.runtime.getTargetForStage();
+                    var clones = vm.runtime.targets.filter(function (t) { return !t.isOriginal; }).length;
+                    var alive = vm.runtime.threads.filter(function (t) { return t.status !== 4; }).length;
+                    var vars = Object.values(stage.variables).map(function (v) {
+                        return v.name + '=' + v.value;
+                    }).join(' ');
+                    stats = {clones: clones, alive: alive, targets: vm.runtime.targets.length, vars: vars};
+                    window.__stats = stats;
+                    log('STATS clones=' + clones + ' alive=' + alive + ' targets=' + stats.targets);
+                    log('VARS ' + vars);
+                    document.title = 'SMOKE OK ' + RUN_SEC + 's clones=' + clones +
+                        ' alive=' + alive + ' targets=' + stats.targets + ' | ' + vars.slice(0, 160);
+                }
+            } catch (e) {
+                clearInterval(interval);
+                fail('tick: ' + e);
+            }
+        }, 250);
+    }
+
+    main().catch(function (e) {
+        fail('boot: ' + e);
+    });
+})();
+</script>
+</body>
+</html>

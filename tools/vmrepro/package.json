@@ -1,0 +1,1 @@
+{"name":"vmrepro","private":true,"version":"1.0.0","dependencies":{"esbuild":"^0.28.2","events":"^3.3.0","jszip":"^3.10.2","scratch-audio":"^2.0.268","scratch-gui":"^5.3.0","scratch-render":"^2.2.84","scratch-storage":"^6.2.1","scratch-svg-renderer":"^3.1.19","scratch-vm":"^5.0.300"}}
