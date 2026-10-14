@@ -2,6 +2,9 @@
 
 > Turn Scratch projects into real apps.
 
+[![build-and-sign](https://github.com/werop55881/scratch-file-converter/actions/workflows/build-and-sign.yml/badge.svg)](https://github.com/werop55881/scratch-file-converter/actions/workflows/build-and-sign.yml)
+[![release](https://img.shields.io/github/v/release/werop55881/scratch-file-converter)](https://github.com/werop55881/scratch-file-converter/releases)
+
 Convert Scratch `.sb3` projects into runnable applications:
 
 - **Python** — a pygame-ce project you run with `python main.py`, optionally
