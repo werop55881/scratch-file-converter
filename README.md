@@ -1,5 +1,7 @@
 # Scratch File Converter
 
+> Turn Scratch projects into real apps.
+
 Convert Scratch `.sb3` projects into runnable applications:
 
 - **Python** — a pygame-ce project you run with `python main.py`, optionally
