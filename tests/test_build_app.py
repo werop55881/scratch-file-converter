@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import importlib.util
 import os
-import subprocess
 import types
 from pathlib import Path
 
@@ -22,6 +21,7 @@ from sb3conv.build_app import (
 from sb3conv.cli import main as cli_main
 from sb3conv.convert import convert
 from sb3conv.errors import BackendError
+from tests.helpers import run_exe_or_skip
 
 needs_pyinstaller = pytest.mark.skipif(
     importlib.util.find_spec("PyInstaller") is None, reason="pyinstaller not installed"
@@ -219,14 +219,13 @@ def test_c_exe_build_runs_smoke(sb3_path: Path, tmp_path: Path):
     convert(sb3_path, out, lang="c")
     exe = build_c_app(out, name="smoke-game")
     assert exe.exists()
-    proc = subprocess.run(
+    proc = run_exe_or_skip(
         [str(exe), "--smoke", "10"],
         cwd=out,
         capture_output=True,
         text=True,
         timeout=120,
         env=runtime_env(smoke=True),
-        check=False,
     )
     assert proc.returncode == 0, proc.stdout + proc.stderr
     assert "SMOKE OK" in proc.stdout, proc.stdout
@@ -239,13 +238,12 @@ def test_python_exe_build_runs_smoke(sb3_path: Path, tmp_path: Path):
     convert(sb3_path, out, lang="python")
     exe = build_python_exe(out, name="smoke-game", console=True)
     assert exe.exists()
-    proc = subprocess.run(
+    proc = run_exe_or_skip(
         [str(exe), "--smoke", "10"],
         cwd=out,
         capture_output=True,
         text=True,
         timeout=300,
-        check=False,
     )
     assert proc.returncode == 0, proc.stdout + proc.stderr
     assert "SMOKE OK" in proc.stdout, proc.stdout

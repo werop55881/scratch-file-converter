@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import json
-import subprocess
 import zipfile
 from pathlib import Path
 
@@ -11,6 +10,7 @@ import pytest
 
 from sb3conv.backends.c import build_executable, find_sdl2_home, find_zig, runtime_env
 from sb3conv.convert import convert
+from tests.helpers import run_exe_or_skip
 
 needs_toolchain = pytest.mark.skipif(
     find_zig() is None or find_sdl2_home() is None, reason="zig/SDL2 not installed"
@@ -118,12 +118,11 @@ def test_generated_main_c_compiles(sb3_path: Path, tmp_path: Path):
     out = tmp_path / "c"
     convert(sb3_path, out, lang="c")
 
-    proc = subprocess.run(
+    proc = run_exe_or_skip(
         [find_zig(), "cc", "-c", "-std=c11", "-Wall", "main.c", "-o", "main.o"],
         cwd=out,
         capture_output=True,
         text=True,
-        check=False,
     )
     assert proc.returncode == 0, proc.stderr
     assert proc.stderr == "", proc.stderr
@@ -137,7 +136,7 @@ def test_runtime_c_compiles_clean(tmp_path: Path):
     for name in ("nanosvg.h", "nanosvgrast.h"):
         (tmp_path / name).write_bytes((source / "vendor" / "nanosvg" / name).read_bytes())
 
-    proc = subprocess.run(
+    proc = run_exe_or_skip(
         [
             find_zig(),
             "cc",
@@ -152,7 +151,6 @@ def test_runtime_c_compiles_clean(tmp_path: Path):
         cwd=tmp_path,
         capture_output=True,
         text=True,
-        check=False,
     )
     assert proc.returncode == 0, proc.stderr
     assert "warning:" not in proc.stderr, proc.stderr
@@ -191,14 +189,13 @@ def game_exe(tmp_path_factory: pytest.TempPathFactory) -> Path:
 
 def run_game(exe: Path, *args: str) -> tuple[dict[str, str], dict[str, int]]:
     """Run the game headless with --smoke; parse SBVAR/SBPOP from --dump."""
-    proc = subprocess.run(
+    proc = run_exe_or_skip(
         [str(exe), "--smoke", *args],
         cwd=exe.parent,
         capture_output=True,
         text=True,
         timeout=180,
         env=runtime_env(smoke=True),
-        check=False,
     )
     assert proc.returncode == 0, f"stdout:\n{proc.stdout}\nstderr:\n{proc.stderr}"
     assert "SMOKE OK" in proc.stdout, proc.stdout

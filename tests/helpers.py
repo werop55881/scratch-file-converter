@@ -2,7 +2,26 @@
 
 from __future__ import annotations
 
+import subprocess
 from typing import Any
+
+import pytest
+
+
+def run_exe_or_skip(command: list[str], **kwargs):
+    """Run a freshly built executable (or compiler) for a test.
+
+    Smart App Control on Windows 11 rejects newly built unsigned
+    executables with WinError 4551, which would make these tests fail
+    randomly on developer machines. Skip instead; CI runners don't enable
+    the policy, so releases still exercise the full run.
+    """
+    try:
+        return subprocess.run(command, check=False, **kwargs)
+    except OSError as exc:
+        if getattr(exc, "winerror", None) == 4551:
+            pytest.skip(f"Smart App Control blocked {command[0]}")
+        raise
 
 
 class BlockFactory:
