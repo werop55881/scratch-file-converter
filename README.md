@@ -33,11 +33,20 @@ SVG costumes work in every target, each using the most efficient path:
 ```sh
 sb3conv convert project.sb3 -o out --lang python       # or javascript / c
 sb3conv convert project.sb3 -o out --lang javascript --exe   # single-file html
+sb3conv pack out -o project.sb3                         # rebuild the .sb3 (round trip)
 sb3conv gui                                            # desktop app
 ```
 
 The GUI has a **Build playable app (.exe / .html)** checkbox (on by default)
 that packages the converted project so it can be distributed as one file.
+
+## Round trip
+
+Every conversion embeds the source project as `original.sb3` in the output
+directory, so nothing is lost: `sb3conv pack` (or the GUI's **Export
+.sb3...** button) rebuilds an archive that opens in Scratch again,
+byte-identical to the input. Code you write in the converted project is
+not merged back — packing restores the original Scratch project.
 
 ## Development
 

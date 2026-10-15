@@ -83,6 +83,7 @@ def convert(
     input_path = Path(input_path)
     backend = get_backend(lang)
     out = Path(output_dir) if output_dir else default_output_dir(input_path, backend.name)
+    original_bytes = input_path.read_bytes()
 
     with Archive.open(input_path) as archive:
         project = load_project(archive.read_project_json())
@@ -112,6 +113,11 @@ def convert(
         else:
             target.write_text(output.content, encoding=output.encoding)  # type: ignore[arg-type]
         written.append(output.path)
+
+    # the embedded source makes the conversion reversible (sb3conv pack)
+    out.mkdir(parents=True, exist_ok=True)
+    (out / "original.sb3").write_bytes(original_bytes)
+    written.append("original.sb3")
 
     warnings = list(result.warnings)
     artifact: Path | None = None

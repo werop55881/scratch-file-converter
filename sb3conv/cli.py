@@ -48,6 +48,10 @@ def build_parser() -> argparse.ArgumentParser:
 
     sub.add_parser("languages", help="list available target languages")
 
+    pack_parser = sub.add_parser("pack", help="rebuild a .sb3 from a converted directory")
+    pack_parser.add_argument("project_dir", help="a directory produced by sb3conv convert")
+    pack_parser.add_argument("-o", "--output", default=None, help="output .sb3 path")
+
     gui_parser = sub.add_parser("gui", help="open the graphical converter")
     gui_parser.add_argument("input", nargs="?", default=None, help="optional .sb3 to pre-load")
     return parser
@@ -124,6 +128,14 @@ def _do_run(args: argparse.Namespace) -> int:
     return subprocess.run(command, cwd=result.output_dir, check=False).returncode
 
 
+def _do_pack(args: argparse.Namespace) -> int:
+    from sb3conv.sb3 import pack_project
+
+    out = pack_project(args.project_dir, args.output)
+    print(f"packed {args.project_dir} -> {out}")
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = build_parser()
     args, extra = parser.parse_known_args(argv)
@@ -147,6 +159,8 @@ def main(argv: list[str] | None = None) -> int:
                 backend = get_backend(name)
                 print(f"{backend.name:12} {backend.label}")
             return 0
+        if args.command == "pack":
+            return _do_pack(args)
         if args.command == "gui":
             from sb3conv.gui import main as gui_main
 

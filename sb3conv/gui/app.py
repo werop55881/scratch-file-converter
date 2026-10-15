@@ -19,6 +19,7 @@ from typing import Any
 from sb3conv.backends import available_languages, get_backend
 from sb3conv.convert import ConversionResult, convert, default_output_dir
 from sb3conv.errors import Sb3Error
+from sb3conv.sb3 import pack_project
 
 POLL_MS = 50
 ENTRY_KINDS = {".py": "python", ".html": "browser", ".htm": "browser", ".c": "native"}
@@ -265,6 +266,9 @@ class ConverterApp:
         ttk.Button(
             row, text="Open output folder", command=self._on_open_folder
         ).pack(side="left", padx=(8, 0))
+        ttk.Button(
+            row, text="Export .sb3...", command=self._on_export_sb3
+        ).pack(side="left", padx=(8, 0))
 
         ttk.Separator(outer).pack(fill="x", pady=(0, 8))
         log_frame = ttk.Frame(outer)
@@ -475,6 +479,33 @@ class ConverterApp:
             open_in_file_manager(path)
         except OSError as exc:
             self._fail(f"could not open folder: {exc}")
+
+    def _on_export_sb3(self) -> None:
+        raw = self.output_var.get().strip()
+        source = Path(raw) if raw else None
+        if source is None or not source.is_dir():
+            if self._last_result is not None:
+                source = self._last_result.output_dir
+            else:
+                self._fail("convert a project first")
+                return
+        default = f"{source.name}.sb3"
+        target = filedialog.asksaveasfilename(
+            parent=self.root,
+            title="Export .sb3",
+            defaultextension=".sb3",
+            initialfile=default,
+            filetypes=[("Scratch project", "*.sb3")],
+        )
+        if not target:
+            return
+        try:
+            out = pack_project(source, target)
+        except (Sb3Error, OSError) as exc:
+            self._fail(str(exc))
+            return
+        self._log(f"exported {out}")
+        self.status_var.set(f"Exported {out.name}")
 
     # --------------------------------------------------------------- poll
     def _poll(self) -> None:

@@ -13,6 +13,7 @@ from sb3conv.sb3.model import (
     Sound,
     Target,
 )
+from sb3conv.sb3.pack import pack_project
 from sb3conv.sb3.parse import load_project
 
 __all__ = [
@@ -29,4 +30,5 @@ __all__ = [
     "Target",
     "load_project",
     "load_project_data",
+    "pack_project",
 ]

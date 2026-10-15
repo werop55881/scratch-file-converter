@@ -119,3 +119,27 @@ def test_gui_build_app_checkbox_and_worker(tmp_path: Path, monkeypatch):
         assert captured["build_exe"] is False
     finally:
         root.destroy()
+
+
+def test_gui_export_sb3_button(tmp_path: Path, sb3_path: Path, monkeypatch):
+    import tkinter as tk
+
+    from sb3conv.gui.app import ConverterApp
+
+    out = tmp_path / "game-py"
+    convert(sb3_path, out, lang="python")
+    target = tmp_path / "exported.sb3"
+    monkeypatch.setattr(
+        "sb3conv.gui.app.filedialog.asksaveasfilename", lambda **_kwargs: str(target)
+    )
+    root = tk.Tk()
+    root.withdraw()
+    try:
+        app = ConverterApp(root)
+        app.output_var.set(str(out))
+        app._on_export_sb3()
+        assert target.is_file()
+        assert target.read_bytes() == sb3_path.read_bytes()
+        assert "Exported" in app.status_var.get()
+    finally:
+        root.destroy()
