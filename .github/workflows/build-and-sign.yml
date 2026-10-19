@@ -2,6 +2,7 @@ name: build-and-sign
 
 on:
   push:
+    branches: [main]
     tags: ['v*']
   workflow_dispatch:
 
