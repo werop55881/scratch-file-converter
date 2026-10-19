@@ -117,6 +117,8 @@ def test_gui_build_app_checkbox_and_worker(tmp_path: Path, monkeypatch, tk_root)
         return ConversionResult(output_dir=tmp_path, entrypoint="main.py")
 
     monkeypatch.setattr("sb3conv.gui.app.convert", fake_convert)
+    # sv_ttk's Tcl theme load is flaky under CI/repeated Tk use; not under test here
+    monkeypatch.setattr("sb3conv.gui.app.apply_theme", lambda *_args, **_kwargs: None)
     app = ConverterApp(tk_root)
     assert app.build_exe_var.get() is True
     app._convert_worker(Path("game.sb3"), None, "python", 2, 30, True)
@@ -134,6 +136,7 @@ def test_gui_export_sb3_button(tmp_path: Path, sb3_path: Path, monkeypatch, tk_r
     monkeypatch.setattr(
         "sb3conv.gui.app.filedialog.asksaveasfilename", lambda **_kwargs: str(target)
     )
+    monkeypatch.setattr("sb3conv.gui.app.apply_theme", lambda *_args, **_kwargs: None)
     app = ConverterApp(tk_root)
     app.output_var.set(str(out))
     app._on_export_sb3()
