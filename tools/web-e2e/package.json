@@ -1,0 +1,12 @@
+{
+  "name": "sb3conv-web-e2e",
+  "private": true,
+  "type": "module",
+  "description": "Headless Pyodide end-to-end: wheel + real .sb3 -> play html + zip",
+  "scripts": {
+    "smoke": "node smoke.mjs"
+  },
+  "dependencies": {
+    "pyodide": "314.0.7"
+  }
+}

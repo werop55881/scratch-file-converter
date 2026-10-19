@@ -3,6 +3,7 @@
 > Turn Scratch projects into real apps.
 
 [![build-and-sign](https://github.com/werop55881/scratch-file-converter/actions/workflows/build-and-sign.yml/badge.svg)](https://github.com/werop55881/scratch-file-converter/actions/workflows/build-and-sign.yml)
+[![Pages](https://github.com/werop55881/scratch-file-converter/actions/workflows/pages.yml/badge.svg)](https://github.com/werop55881/scratch-file-converter/actions/workflows/pages.yml)
 [![release](https://img.shields.io/github/v/release/werop55881/scratch-file-converter)](https://github.com/werop55881/scratch-file-converter/releases)
 
 Convert Scratch `.sb3` projects into runnable applications:
@@ -48,6 +49,24 @@ directory, so nothing is lost: `sb3conv pack` (or the GUI's **Export
 byte-identical to the input. Code you write in the converted project is
 not merged back — packing restores the original Scratch project.
 
+## Web app
+
+**Live: https://werop55881.github.io/scratch-file-converter/**
+
+The converter also runs **entirely in your browser** — no server, no upload:
+pick a `.sb3`, get an instantly playable HTML page plus a project zip (with
+`original.sb3` inside for the round trip). The site (`web/`) loads
+[Pyodide](https://pyodide.org) in a Web Worker and installs this repo's
+pure-Python wheel; `sb3conv/web.py` is the bridge (7 tests in
+`tests/test_web.py` cover it, `tools/web-e2e/` re-proves the whole pipeline
+headless). `.github/workflows/pages.yml` builds and deploys with GitHub
+Pages.
+
+Targets: JavaScript gets **Play now**; Python and C download as project
+folders (no `.exe` builds in the browser). SVG costumes rasterize only in
+the desktop app (Pyodide has no resvg) — the JavaScript target renders
+vectors natively anyway.
+
 ## Development
 
 ```sh
@@ -58,10 +77,9 @@ pytest
 
 ## Releases
 
-Windows builds are code-signed through
-[SignPath](https://signpath.io)'s free Open Source Code Signing program.
-The `build-and-sign` GitHub Actions workflow builds the GUI `.exe` and
-submits it for signing; signed artifacts are attached to the workflow run.
+Prebuilt Windows builds (the GUI `.exe`) are attached to every release and
+workflow run. Builds are currently unsigned — machines with Windows Smart
+App Control may show a warning until the file builds reputation.
 
 ## License
 

@@ -6,8 +6,6 @@ import re
 import struct
 import zlib
 
-import resvg_py
-
 # Supersample factor: SVGs are rendered at twice their natural size so the
 # bitmap runtime stays sharp when the game window is scaled. Manifest geometry
 # (rotation centers, resolution) is scaled by the same factor so display sizes
@@ -81,19 +79,37 @@ def has_zero_extent(svg: bytes) -> bool:
     return False
 
 
+def _resvg_rasterize(svg: bytes, *, zoom: float) -> bytes | None:
+    """Render with resvg, or None when resvg is unavailable or rejects the SVG.
+
+    The import stays lazy so sb3conv also loads under Pyodide (the browser
+    app), where no native resvg wheel exists; callers then keep vector
+    costumes and surface the usual warning.
+    """
+    try:
+        import resvg_py
+    except ImportError:
+        return None
+    try:
+        return resvg_py.svg_to_bytes(svg_string=svg.decode("utf-8", errors="replace"), zoom=zoom)
+    except ValueError:
+        return None
+
+
 def rasterize(svg: bytes, *, zoom: float = RASTER_ZOOM) -> bytes | None:
     """Render SVG markup to PNG bytes at ``zoom`` times its natural size.
 
     Zero-extent documents become a 1x1 transparent pixel (Scratch draws
-    nothing for them). Returns None when the document cannot be parsed;
-    callers then pass the original .svg through unchanged.
+    nothing for them). Returns None when the document cannot be parsed or
+    resvg is not installed; callers then pass the original .svg through
+    unchanged.
     """
     global _TRANSPARENT_PNG
-    try:
-        return resvg_py.svg_to_bytes(svg_string=svg.decode("utf-8", errors="replace"), zoom=zoom)
-    except ValueError:
-        if has_zero_extent(svg):
-            if _TRANSPARENT_PNG is None:
-                _TRANSPARENT_PNG = _transparent_png()
-            return _TRANSPARENT_PNG
-        return None
+    rendered = _resvg_rasterize(svg, zoom=zoom)
+    if rendered is not None:
+        return rendered
+    if has_zero_extent(svg):
+        if _TRANSPARENT_PNG is None:
+            _TRANSPARENT_PNG = _transparent_png()
+        return _TRANSPARENT_PNG
+    return None

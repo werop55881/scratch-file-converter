@@ -31,6 +31,12 @@ build-backend = "setuptools.build_meta"
 [tool.setuptools.packages.find]
 include = ["sb3conv*"]
 
+# Runtime data the backends read at conversion time (the wheel must ship
+# them - PyInstaller picks them up from the source tree automatically).
+[tool.setuptools.package-data]
+"sb3conv.backends.c" = ["runtime_src.c", "runtime_src.h", "vendor/nanosvg/*.txt", "vendor/nanosvg/*.h"]
+"sb3conv.backends.javascript" = ["runtime_src.js"]
+
 [tool.ruff]
 line-length = 100
 target-version = "py310"

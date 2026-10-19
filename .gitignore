@@ -14,4 +14,6 @@ examples/*.sb3
 node_modules/
 game/star-game-*/
 signed-artifact/
+web/vendor/
+dist-wheel/
 
