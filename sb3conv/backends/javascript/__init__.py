@@ -64,6 +64,7 @@ def _index_source(name: str) -> str:
         "<style>\n"
         "  html, body { margin: 0; height: 100%; background: #000; }\n"
         "  body { display: flex; align-items: center; justify-content: center; }\n"
+        "  #stage { flex: none; max-width: 100%; max-height: 100%; }\n"
         "</style>\n"
         "</head>\n"
         "<body>\n"

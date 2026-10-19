@@ -32,6 +32,7 @@ def test_javascript_target_yields_play_html_and_zip(sb3_path: Path):
     assert result["html"] is not None
     assert b"window.__SB3_ASSETS" in result["html"]
     assert b"<script src=" not in result["html"]
+    assert b"#stage { flex: none; max-width: 100%" in result["html"]
     assert result["log"] == ["building single-file html..."]
     assert result["warnings"] == []
     with zipfile.ZipFile(io.BytesIO(result["zip"])) as archive:

@@ -13,6 +13,17 @@ from sb3conv.gui import main as gui_main
 from sb3conv.gui import plan_run
 
 
+@pytest.fixture(scope="module")
+def tk_root():
+    """One Tk root for the whole module - a second Tk() in one process is flaky."""
+    import tkinter as tk
+
+    root = tk.Tk()
+    root.withdraw()
+    yield root
+    root.destroy()
+
+
 def test_cli_exposes_gui_command():
     args = build_parser().parse_args(["gui", "game.sb3"])
     assert args.command == "gui"
@@ -96,9 +107,7 @@ def test_theme_flag_validates(capsys):
     assert "usage" in captured.err
 
 
-def test_gui_build_app_checkbox_and_worker(tmp_path: Path, monkeypatch):
-    import tkinter as tk
-
+def test_gui_build_app_checkbox_and_worker(tmp_path: Path, monkeypatch, tk_root):
     from sb3conv.gui.app import ConverterApp
 
     captured: dict = {}
@@ -108,22 +117,15 @@ def test_gui_build_app_checkbox_and_worker(tmp_path: Path, monkeypatch):
         return ConversionResult(output_dir=tmp_path, entrypoint="main.py")
 
     monkeypatch.setattr("sb3conv.gui.app.convert", fake_convert)
-    root = tk.Tk()
-    root.withdraw()
-    try:
-        app = ConverterApp(root)
-        assert app.build_exe_var.get() is True
-        app._convert_worker(Path("game.sb3"), None, "python", 2, 30, True)
-        assert captured["build_exe"] is True
-        app._convert_worker(Path("game.sb3"), None, "python", 2, 30, False)
-        assert captured["build_exe"] is False
-    finally:
-        root.destroy()
+    app = ConverterApp(tk_root)
+    assert app.build_exe_var.get() is True
+    app._convert_worker(Path("game.sb3"), None, "python", 2, 30, True)
+    assert captured["build_exe"] is True
+    app._convert_worker(Path("game.sb3"), None, "python", 2, 30, False)
+    assert captured["build_exe"] is False
 
 
-def test_gui_export_sb3_button(tmp_path: Path, sb3_path: Path, monkeypatch):
-    import tkinter as tk
-
+def test_gui_export_sb3_button(tmp_path: Path, sb3_path: Path, monkeypatch, tk_root):
     from sb3conv.gui.app import ConverterApp
 
     out = tmp_path / "game-py"
@@ -132,14 +134,9 @@ def test_gui_export_sb3_button(tmp_path: Path, sb3_path: Path, monkeypatch):
     monkeypatch.setattr(
         "sb3conv.gui.app.filedialog.asksaveasfilename", lambda **_kwargs: str(target)
     )
-    root = tk.Tk()
-    root.withdraw()
-    try:
-        app = ConverterApp(root)
-        app.output_var.set(str(out))
-        app._on_export_sb3()
-        assert target.is_file()
-        assert target.read_bytes() == sb3_path.read_bytes()
-        assert "Exported" in app.status_var.get()
-    finally:
-        root.destroy()
+    app = ConverterApp(tk_root)
+    app.output_var.set(str(out))
+    app._on_export_sb3()
+    assert target.is_file()
+    assert target.read_bytes() == sb3_path.read_bytes()
+    assert "Exported" in app.status_var.get()

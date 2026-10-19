@@ -135,6 +135,7 @@ function showResult(message) {
     els.fileList.appendChild(item);
   }
   els.result.hidden = false;
+  els.result.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
 function setRunning(running) {
