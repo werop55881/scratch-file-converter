@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Scratch File Converter — turn .sb3 projects into real apps</title>
+<meta name="description" content="Convert Scratch projects to Python, JavaScript or C entirely in your browser. Nothing is uploaded.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%234c97ff'/%3E%3Cpath d='M9 20c0 2 2 4 7 4s7-2 7-4M11 12h10M16 12v7' stroke='%2304122b' stroke-width='2.5' stroke-linecap='round' fill='none'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="./style.css">
+</head>
+<body>
+<header>
+  <h1>Scratch File Converter</h1>
+  <p class="tagline">Turn Scratch projects into real apps.</p>
+  <p class="privacy">Runs entirely in your browser — your file is never uploaded.</p>
+</header>
+
+<main>
+  <section class="card" id="setup">
+    <div id="dropzone" tabindex="0" role="button" aria-label="Choose a .sb3 file">
+      <input type="file" id="file-input" accept=".sb3,application/zip" hidden>
+      <strong>Drop a .sb3 here</strong><span>or click to browse</span>
+    </div>
+    <div id="file-chip" hidden>
+      <span id="file-name"></span>
+      <span id="file-size" class="muted"></span>
+      <button id="file-clear" type="button" aria-label="Remove file">✕</button>
+    </div>
+
+    <fieldset id="target">
+      <legend>Target</legend>
+      <label>
+        <span><input type="radio" name="lang" value="javascript" checked><b>JavaScript</b></span>
+        <span>plays here instantly</span>
+      </label>
+      <label>
+        <span><input type="radio" name="lang" value="python"><b>Python</b></span>
+        <span>pygame project</span>
+      </label>
+      <label>
+        <span><input type="radio" name="lang" value="c"><b>C</b></span>
+        <span>SDL project</span>
+      </label>
+    </fieldset>
+
+    <div class="opts">
+      <label>Scale <input id="scale" type="number" min="1" max="6" value="2"></label>
+      <label>FPS <input id="fps" type="number" min="10" max="60" value="30"></label>
+    </div>
+
+    <div class="actions">
+      <button id="convert-btn" type="button" disabled>Convert</button>
+      <button id="cancel-btn" type="button" hidden>Cancel</button>
+      <span id="elapsed" class="muted"></span>
+    </div>
+    <pre id="log" aria-live="polite"></pre>
+  </section>
+
+  <section id="result" hidden>
+    <div id="play-card" class="card" hidden>
+      <h2>Play</h2>
+      <div class="frame-wrap">
+        <iframe id="play-frame" title="Converted game" sandbox="allow-scripts allow-pointer-lock"></iframe>
+      </div>
+      <p class="hint">Click the game once to give it keyboard focus. Sound may need a click inside too.</p>
+    </div>
+    <div class="card">
+      <h2>Download</h2>
+      <div class="actions">
+        <a id="zip-link" class="btn primary" download>Project .zip</a>
+        <a id="html-link" class="btn" download hidden>Single-file .html</a>
+        <button id="again-btn" type="button" class="btn ghost">Convert another</button>
+      </div>
+      <p id="zip-note" class="muted"></p>
+      <h3>Files</h3>
+      <ul id="file-list"></ul>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <a href="https://github.com/werop55881/scratch-file-converter">Source on GitHub</a>
+  <span class="muted">MIT / Apache-2.0 / GPL-3.0 · not affiliated with the Scratch Foundation</span>
+</footer>
+<script type="module" src="./app.js"></script>
+</body>
+</html>
