@@ -79,8 +79,8 @@ def _python_build_command() -> list[str] | None:
 _VERSION_TEMPLATE = """# UTF-8
 VSVersionInfo(
   ffi=FixedFileInfo(
-    filevers=(0, 1, 0, 0),
-    prodvers=(0, 1, 0, 0),
+    filevers=(0, 2, 0, 0),
+    prodvers=(0, 2, 0, 0),
     mask=0x3F, flags=0x0, OS=0x40004, fileType=0x1, subtype=0x0, date=(0, 0)
   ),
   kids=[
@@ -88,11 +88,11 @@ VSVersionInfo(
       [StringTable('040904B0', [
         StringStruct('CompanyName', 'Scratch File Converter'),
         StringStruct('FileDescription', %(desc)r),
-        StringStruct('FileVersion', '0.1.0.0'),
+        StringStruct('FileVersion', '0.2.0.0'),
         StringStruct('InternalName', %(internal)r),
         StringStruct('OriginalFilename', %(original)r),
         StringStruct('ProductName', %(desc)r),
-        StringStruct('ProductVersion', '0.1.0.0'),
+        StringStruct('ProductVersion', '0.2.0.0'),
       ])]
     ),
     VarFileInfo([VarStruct('Translation', [1033, 1200])]),

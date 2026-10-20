@@ -1,6 +1,6 @@
 [project]
 name = "scratchfileconverter"
-version = "0.1.0"
+version = "0.2.0"
 description = "Convert Scratch .sb3 projects into runnable Python (pygame), JavaScript and more"
 readme = "README.md"
 requires-python = ">=3.10"
