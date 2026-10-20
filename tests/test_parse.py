@@ -81,6 +81,63 @@ def test_monitors(project) -> None:
     assert monitor.is_list is False
 
 
+def test_monitors_modern_schema(project_dict) -> None:
+    """Current Scratch: random id + opcode + params.VARIABLE/LIST + spriteName."""
+    project_dict["monitors"] = [
+        {
+            "id": "0o)=0BGUQx~Is];T7F3x",
+            "mode": "default",
+            "opcode": "data_variable",
+            "params": {"VARIABLE": "dust"},
+            "spriteName": None,
+            "value": 3,
+            "x": 2,
+            "y": 112,
+            "visible": True,
+        },
+        {
+            "id": "Zl!st-id",
+            "mode": "list",
+            "opcode": "data_listcontents",
+            "params": {"LIST": "queue"},
+            "spriteName": "Star",
+            "value": [],
+            "x": 10,
+            "y": 20,
+            "visible": False,
+        },
+    ]
+    project = load_project(project_dict)
+    var, lst = project.monitors
+    assert var.label == "dust"
+    assert var.target_name is None
+    assert var.is_list is False
+    assert var.visible is True
+    assert lst.label == "queue"
+    assert lst.target_name == "Star"
+    assert lst.is_list is True
+    assert lst.visible is False
+
+
+def test_monitors_classic_list_keys(project_dict) -> None:
+    project_dict["monitors"] = [
+        {
+            "id": "list_queue",
+            "mode": "list",
+            "list_name": "queue",
+            "target": "Stage",
+            "x": 1,
+            "y": 2,
+            "visible": True,
+            "value": [],
+        }
+    ]
+    monitor = load_project(project_dict).monitors[0]
+    assert monitor.label == "queue"
+    assert monitor.is_list is True
+    assert monitor.target_name == "Stage"
+
+
 def test_reporter_children_reachable(project_dict) -> None:
     from tests.helpers import BlockFactory, make_sprite
 

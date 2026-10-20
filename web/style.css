@@ -332,6 +332,18 @@ iframe {
   background: var(--surface-2);
 }
 
+#file-list a {
+  color: var(--accent);
+  text-decoration: none;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+#file-list a:hover {
+  text-decoration: underline;
+}
+
 .muted {
   color: var(--muted);
 }

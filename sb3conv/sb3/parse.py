@@ -215,16 +215,50 @@ def load_project(data: dict) -> Project:
     return project
 
 
+def _monitor_label(raw: dict, fallback: str) -> str:
+    """Variable/list name for both monitor schemas.
+
+    Current Scratch writes ``opcode`` + ``params.VARIABLE``/``params.LIST``
+    (the monitor ``id`` is a random string); older files used ``var_name`` /
+    ``list_name`` (or ``variable`` / ``list``). Falling back to the id gives
+    garbage labels for modern files and breaks the runtime's value lookup.
+    """
+    params = raw.get("params")
+    if isinstance(params, dict):
+        name = params.get("VARIABLE") or params.get("LIST")
+        if name:
+            return str(name)
+    for key in ("var_name", "list_name", "variable", "list"):
+        if raw.get(key):
+            return str(raw[key])
+    return fallback
+
+
+def _monitor_is_list(raw: dict) -> bool:
+    """List or variable? Handles both the modern opcode schema and classic keys."""
+    params = raw.get("params")
+    if isinstance(params, dict):
+        if "LIST" in params:
+            return True
+        if "VARIABLE" in params:
+            return False
+    if bool(raw.get("isList", False)):
+        return True
+    if raw.get("opcode") == "data_listcontents":
+        return True
+    return ("list_name" in raw or "list" in raw) and "variable" not in raw and "var_name" not in raw
+
+
 def _parse_monitors(raw_monitors: list, project: Project) -> list[Monitor]:
     monitors: list[Monitor] = []
     for raw in raw_monitors:
         if not isinstance(raw, dict):
             continue
         monitor_id = str(raw.get("id", ""))
-        is_list = bool(raw.get("isList", False))
+        is_list = _monitor_is_list(raw)
         if not is_list:
             is_list = project.list_owner(monitor_id) is not None and project.var_owner(monitor_id) is None
-        owner = project.var_owner(monitor_id) if not is_list else project.list_owner(monitor_id)
+        label = _monitor_label(raw, monitor_id)
         monitors.append(
             Monitor(
                 monitor_id=monitor_id,
@@ -232,11 +266,10 @@ def _parse_monitors(raw_monitors: list, project: Project) -> list[Monitor]:
                 x=_number(raw.get("x")) - 240,
                 y=180 - _number(raw.get("y")),
                 visible=bool(raw.get("visible", True)),
-                target_name=raw.get("target"),
-                label=str(raw.get("variable", raw.get("list", monitor_id))),
+                target_name=raw.get("target") or raw.get("spriteName") or None,
+                label=label,
                 is_list=is_list,
                 value=raw.get("value", 0),
             )
         )
-        _ = owner  # ownership resolved again at render time
     return monitors

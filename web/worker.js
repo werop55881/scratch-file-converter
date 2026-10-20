@@ -75,13 +75,12 @@ self.onmessage = async (event) => {
   const { id, bytes, job } = event.data;
   try {
     const result = await convert(bytes, job);
-    const fileNames = Object.entries(result.files).map(([name, view]) => [
-      name,
-      view.byteLength,
-    ]);
     const transfer = [result.zip.buffer];
     if (result.html) {
       transfer.push(result.html.buffer);
+    }
+    for (const view of Object.values(result.files)) {
+      transfer.push(view.buffer);
     }
     postMessage(
       {
@@ -89,11 +88,11 @@ self.onmessage = async (event) => {
         id,
         zip: result.zip,
         html: result.html || null,
+        files: result.files,
         name: result.name,
         entrypoint: result.entrypoint,
         log: [...result.log],
         warnings: [...result.warnings],
-        fileNames,
       },
       transfer,
     );

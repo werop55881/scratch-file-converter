@@ -33,6 +33,27 @@ let startedAt = 0;
 let ticker = null;
 let zipUrl = null;
 let htmlUrl = null;
+let fileUrls = [];
+
+const MIME = new Map([
+  ["png", "image/png"],
+  ["svg", "image/svg+xml"],
+  ["jpg", "image/jpeg"],
+  ["jpeg", "image/jpeg"],
+  ["wav", "audio/wav"],
+  ["html", "text/html"],
+  ["js", "text/javascript"],
+  ["json", "application/json"],
+  ["py", "text/x-python"],
+  ["c", "text/x-c"],
+  ["h", "text/x-c"],
+]);
+
+function mimeFor(name) {
+  const dot = name.lastIndexOf(".");
+  const ext = dot === -1 ? "" : name.slice(dot + 1).toLowerCase();
+  return MIME.get(ext) || "application/octet-stream";
+}
 
 function log(text, kind = "") {
   const line = document.createElement("div");
@@ -85,8 +106,10 @@ function stopTicker() {
 function revokeUrls() {
   if (zipUrl) URL.revokeObjectURL(zipUrl);
   if (htmlUrl) URL.revokeObjectURL(htmlUrl);
+  for (const url of fileUrls) URL.revokeObjectURL(url);
   zipUrl = null;
   htmlUrl = null;
+  fileUrls = [];
 }
 
 function resetResult() {
@@ -99,11 +122,9 @@ function resetResult() {
 }
 
 function showResult(message) {
+  const fileEntries = Object.entries(message.files || {});
   const zipSize = message.zip.byteLength;
-  log(
-    `converted -> ${message.fileNames.length} files, zip ${humanSize(zipSize)}`,
-    "ok",
-  );
+  log(`converted -> ${fileEntries.length} files, zip ${humanSize(zipSize)}`, "ok");
   for (const line of message.log || []) log(line);
   for (const warning of message.warnings) log(`warning: ${warning}`, "warn");
 
@@ -124,14 +145,17 @@ function showResult(message) {
   }
 
   els.fileList.replaceChildren();
-  for (const [name, size] of message.fileNames) {
+  for (const [name, view] of fileEntries) {
     const item = document.createElement("li");
-    const label = document.createElement("span");
-    label.textContent = name;
+    const link = document.createElement("a");
+    link.textContent = name;
+    link.href = URL.createObjectURL(new Blob([view], { type: mimeFor(name) }));
+    link.download = name;
+    fileUrls.push(link.href);
     const meta = document.createElement("span");
     meta.className = "muted";
-    meta.textContent = humanSize(size);
-    item.append(label, meta);
+    meta.textContent = humanSize(view.byteLength);
+    item.append(link, meta);
     els.fileList.appendChild(item);
   }
   els.result.hidden = false;
