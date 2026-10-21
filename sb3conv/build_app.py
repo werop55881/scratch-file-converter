@@ -4,6 +4,8 @@
 - ``c``        -> one .exe via zig + SDL2 (the backend's normal build)
 - ``javascript`` -> one self-contained .html with every asset inlined, so it
   runs from a double click without a server (and without canvas tainting)
+- ``typescript`` -> tsc compiles main.ts/runtime.ts, then the same .html
+- ``lua``     -> one .love archive (run with ``love project.love``)
 
 ``ToolchainMissing`` (a :class:`BackendError`) signals that an optional
 toolchain is not installed; callers may turn that into a warning instead of a
@@ -20,6 +22,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import zipfile
 from pathlib import Path
 
 from sb3conv.errors import BackendError
@@ -236,6 +239,52 @@ def build_js_app(out_dir: Path, *, name: str) -> Path:
     return target
 
 
+def build_love_app(out_dir: Path, *, name: str) -> Path:
+    """Zip ``out_dir`` (a converted lua project) into a single .love archive."""
+    out_dir = Path(out_dir)
+    if not (out_dir / "main.lua").is_file():
+        raise BackendError(f"{out_dir} does not look like a converted lua project")
+    target = out_dir / f"{name}.love"
+    # original.sb3 and the JSON manifest are converter bookkeeping, not game
+    # data; the game reads manifest.lua instead.
+    skip = {"original.sb3", "sb3_manifest.json", target.name}
+    with zipfile.ZipFile(target, "w", zipfile.ZIP_DEFLATED) as archive:
+        for path in sorted(out_dir.rglob("*")):
+            if not path.is_file() or path.name in skip:
+                continue
+            archive.write(path, path.relative_to(out_dir).as_posix())
+    return target
+
+
+def build_typescript_app(out_dir: Path, *, name: str) -> Path:
+    """Compile ``out_dir`` (a converted typescript project) with tsc, then .html."""
+    out_dir = Path(out_dir)
+    if not (out_dir / "main.ts").is_file() or not (out_dir / "tsconfig.json").is_file():
+        raise BackendError(f"{out_dir} does not look like a converted typescript project")
+    command: list[str] | None = None
+    tsc = shutil.which("tsc")
+    if tsc:
+        command = [tsc, "-p", str(out_dir)]
+    else:
+        npx = shutil.which("npx")
+        if npx:
+            command = [npx, "-y", "-p", "typescript", "tsc", "-p", str(out_dir)]
+    if command is None:
+        raise ToolchainMissing(
+            "building typescript needs tsc (npm install -g typescript) or npx"
+        )
+    proc = subprocess.run(command, capture_output=True, text=True, check=False)
+    if proc.returncode != 0:
+        # tsc writes diagnostics to stdout, npm/npx notices to stderr
+        combined = "\n".join(part for part in (proc.stderr, proc.stdout) if part)
+        tail = "\n".join(combined.splitlines()[-40:])
+        raise BackendError(f"tsc failed:\n{tail}")
+    for required in ("runtime.js", "main.js"):
+        if not (out_dir / required).is_file():
+            raise BackendError(f"tsc reported success but {required} is missing in {out_dir}")
+    return build_js_app(out_dir, name=name)
+
+
 def build_app(out_dir: Path | str, *, lang: str, name: str, console: bool = False) -> Path:
     """Build the playable artifact for a converted project; returns its path."""
     out_dir = Path(out_dir)
@@ -245,4 +294,8 @@ def build_app(out_dir: Path | str, *, lang: str, name: str, console: bool = Fals
         return build_c_app(out_dir, name=name)
     if lang in ("js", "javascript"):
         return build_js_app(out_dir, name=name)
+    if lang in ("ts", "typescript"):
+        return build_typescript_app(out_dir, name=name)
+    if lang in ("lua", "love"):
+        return build_love_app(out_dir, name=name)
     raise BackendError(f"no build step for target {lang!r}")

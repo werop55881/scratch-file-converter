@@ -14,7 +14,7 @@ from sb3conv.errors import Sb3Error
 from sb3conv.sb3 import Archive, pack_project
 
 
-@pytest.mark.parametrize("lang", ["python", "javascript", "c"])
+@pytest.mark.parametrize("lang", ["python", "javascript", "c", "lua", "typescript"])
 def test_convert_embeds_original_sb3(sb3_path: Path, tmp_path: Path, lang: str):
     out = tmp_path / f"out-{lang}"
     result = convert(sb3_path, out, lang=lang)

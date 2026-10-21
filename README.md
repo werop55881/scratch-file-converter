@@ -12,8 +12,13 @@ Convert Scratch `.sb3` projects into runnable applications:
   packaged into a standalone `.exe` with PyInstaller.
 - **JavaScript** — a browser project, optionally bundled into a single
   self-contained `.html` file that runs straight from `file://`.
+- **TypeScript** — the JavaScript project as `.ts` sources with a
+  `tsconfig.json`; `tsc` type-checks the glue and emits the same browser
+  bundle.
 - **C** — an SDL2 program built with the Zig toolchain, optionally linked
   into a standalone `.exe`.
+- **Lua** — a [LÖVE](https://love2d.org) game: coroutines drive the same
+  runtime semantics, packed into a single `.love` file (`love project.love`).
 
 ## SVG costumes
 
@@ -28,12 +33,15 @@ SVG costumes work in every target, each using the most efficient path:
 - **Python** rasterizes SVGs to PNG with
   [resvg-py](https://crates.io/crates/resvg) at 2x supersampling, because
   pygame cannot load SVG directly.
+- **TypeScript** inherits the JavaScript policy (`.svg` kept for the browser).
+- **Lua** rasterizes to PNG like Python — the LÖVE runtime draws bitmaps.
 
 ## Usage
 
 ```sh
-sb3conv convert project.sb3 -o out --lang python       # or javascript / c
+sb3conv convert project.sb3 -o out --lang python    # or javascript / c / ts / lua
 sb3conv convert project.sb3 -o out --lang javascript --exe   # single-file html
+sb3conv convert project.sb3 -o out --lang lua --exe          # single-file .love
 sb3conv pack out -o project.sb3                         # rebuild the .sb3 (round trip)
 sb3conv gui                                            # desktop app
 ```
@@ -57,15 +65,17 @@ The converter also runs **entirely in your browser** — no server, no upload:
 pick a `.sb3`, get an instantly playable HTML page plus a project zip (with
 `original.sb3` inside for the round trip). The site (`web/`) loads
 [Pyodide](https://pyodide.org) in a Web Worker and installs this repo's
-pure-Python wheel; `sb3conv/web.py` is the bridge (7 tests in
+pure-Python wheel; `sb3conv/web.py` is the bridge (tests in
 `tests/test_web.py` cover it, `tools/web-e2e/` re-proves the whole pipeline
 headless). `.github/workflows/pages.yml` builds and deploys with GitHub
 Pages.
 
-Targets: JavaScript gets **Play now**; Python and C download as project
-folders (no `.exe` builds in the browser). SVG costumes rasterize only in
-the desktop app (Pyodide has no resvg) — the JavaScript target renders
-vectors natively anyway.
+Targets: JavaScript gets **Play now**; Python, C and TypeScript download as
+project folders (no `.exe`/`tsc` builds in the browser — TypeScript still
+emits all `.ts` sources plus a `tsconfig.json`). Lua builds a downloadable
+`.love` archive in the browser (pure zip), which plays in LÖVE rather than
+the page. SVG costumes rasterize only in the desktop app (Pyodide has no
+resvg) — the JavaScript target renders vectors natively anyway.
 
 ## Development
 

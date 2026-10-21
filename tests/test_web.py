@@ -61,6 +61,24 @@ def test_c_target_files(sb3_path: Path):
     assert result["html"] is None
 
 
+def test_lua_target_files_and_love_archive(sb3_path: Path):
+    result = web_convert(sb3_path.read_bytes(), lang="lua")
+    assert "main.lua" in result["files"]
+    assert "manifest.lua" in result["files"]
+    assert any(name.endswith(".love") for name in result["files"])
+    assert result["entrypoint"] == "main.lua"
+    assert result["html"] is None  # .love is not a play page
+    assert result["log"] == ["packing .love archive..."]
+
+
+def test_typescript_target_files_without_browser_build(sb3_path: Path):
+    result = web_convert(sb3_path.read_bytes(), lang="typescript")
+    assert "main.ts" in result["files"]
+    assert "tsconfig.json" in result["files"]
+    assert result["html"] is None  # tsc is a local toolchain; no in-browser build
+    assert result["log"] == []
+
+
 def test_web_run_job_json_bridge(sb3_path: Path):
     payload = memoryview(sb3_path.read_bytes())
     job = json.dumps({"lang": "javascript", "scale": 1, "fps": 30, "name": "bridge"})

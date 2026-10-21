@@ -840,7 +840,8 @@ class Runtime {
       }
       this.current_thread = thread;
       try {
-        thread.generator.next();
+        const result = thread.generator.next();
+        if (result.done) thread.done = true;
       } catch (exc) {
         const name = (thread.reg.fn && thread.reg.fn.name) || "?";
         console.error(`error: script ${name} crashed:`, exc);

@@ -167,7 +167,7 @@ def test_build_js_app_requires_converted_project(tmp_path: Path):
 
 def test_build_app_unknown_lang(tmp_path: Path):
     with pytest.raises(BackendError, match="no build step"):
-        build_app(tmp_path, lang="lua", name="x")
+        build_app(tmp_path, lang="rust", name="x")
 
 
 def test_script_safe_escapes_closing_tags():

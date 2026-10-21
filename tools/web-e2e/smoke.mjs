@@ -60,6 +60,27 @@ if (result.zip.byteLength < 1000) problems.push("zip suspiciously small");
 for (const w of result.log) console.log(`log: ${w}`);
 for (const w of result.warnings) console.log(`warning: ${w}`);
 
+// second job: the lua target must convert in the browser too (.love = pure zip)
+py.globals.set(
+  "upload_job",
+  JSON.stringify({ lang: "lua", scale: 2, fps: 30, name: "fighting-game" }),
+);
+const luaProxy = await py.runPythonAsync("web_run_job(upload_bytes, upload_job)");
+const luaResult = luaProxy.toJs({ dict_converter: Object.fromEntries });
+luaProxy.destroy();
+const luaNames = Object.keys(luaResult.files);
+console.log(
+  `lua: ${luaNames.length} files, zip ${luaResult.zip.byteLength} bytes, ` +
+    `html ${luaResult.html ? "yes" : "no"}`,
+);
+if (!luaNames.includes("main.lua")) problems.push("lua target: no main.lua");
+if (!luaNames.includes("manifest.lua")) problems.push("lua target: no manifest.lua");
+if (!luaNames.some((name) => name.endsWith(".love"))) problems.push("lua target: no .love");
+if (luaResult.html) problems.push("lua target: unexpected play html");
+if (luaResult.zip.byteLength < 1000) problems.push("lua zip suspiciously small");
+for (const w of luaResult.log) console.log(`lua log: ${w}`);
+for (const w of luaResult.warnings) console.log(`lua warning: ${w}`);
+
 if (problems.length) {
   console.error(`FAIL: ${problems.join("; ")}`);
   process.exit(1);

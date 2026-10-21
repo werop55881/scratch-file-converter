@@ -47,6 +47,9 @@ const MIME = new Map([
   ["py", "text/x-python"],
   ["c", "text/x-c"],
   ["h", "text/x-c"],
+  ["ts", "text/x-typescript"],
+  ["lua", "text/x-lua"],
+  ["love", "application/zip"],
 ]);
 
 function mimeFor(name) {

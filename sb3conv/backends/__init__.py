@@ -24,11 +24,13 @@ __all__ = [
 
 
 def _load_builtin_backends() -> None:
-    from sb3conv.backends import c, javascript, python  # noqa: F401
+    from sb3conv.backends import c, javascript, lua, python, typescript  # noqa: F401
 
     register(c.SPEC)
     register(javascript.SPEC)
+    register(lua.SPEC)
     register(python.SPEC)
+    register(typescript.SPEC)
 
 
 _load_builtin_backends()

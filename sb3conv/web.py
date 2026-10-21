@@ -19,7 +19,10 @@ from typing import Any
 from sb3conv.convert import convert
 from sb3conv.errors import Sb3Error
 
-VALID_LANGS = ("python", "javascript", "c")
+VALID_LANGS = ("python", "javascript", "c", "typescript", "lua")
+
+# builds that work in the browser (pure Python/zip, no local toolchains)
+_BROWSER_BUILDS = ("javascript", "lua")
 
 _MAX_NAME = 64
 
@@ -73,9 +76,9 @@ def web_convert(
             lang=lang,
             scale=scale,
             fps=fps,
-            # .exe builds need local toolchains; the single-file html is pure
-            # Python and works fine in the browser.
-            build_exe=build and lang == "javascript",
+            # .exe builds need local toolchains; the single-file html (and the
+            # pure-zip .love archive) are toolchain-free and work in the browser.
+            build_exe=build and lang in _BROWSER_BUILDS,
             progress=log.append,
         )
         files = {
@@ -84,8 +87,9 @@ def web_convert(
             if path.is_file()
         }
         html: bytes | None = None
-        if result.artifact is not None and result.artifact.is_file():
-            html = result.artifact.read_bytes()
+        artifact = result.artifact
+        if artifact is not None and artifact.is_file() and artifact.suffix == ".html":
+            html = artifact.read_bytes()
         return {
             "files": files,
             "zip": _zip_tree(out),

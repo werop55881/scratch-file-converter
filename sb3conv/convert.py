@@ -15,6 +15,8 @@ _BUILD_MESSAGES = {
     "python": "building .exe (this can take a minute)...",
     "c": "building .exe...",
     "javascript": "building single-file html...",
+    "typescript": "compiling typescript + building html...",
+    "lua": "packing .love archive...",
 }
 
 

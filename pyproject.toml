@@ -36,6 +36,7 @@ include = ["sb3conv*"]
 [tool.setuptools.package-data]
 "sb3conv.backends.c" = ["runtime_src.c", "runtime_src.h", "vendor/nanosvg/*.txt", "vendor/nanosvg/*.h"]
 "sb3conv.backends.javascript" = ["runtime_src.js"]
+"sb3conv.backends.lua" = ["runtime_src.lua"]
 
 [tool.ruff]
 line-length = 100

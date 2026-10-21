@@ -29,6 +29,10 @@ LANG_ALIASES = {
     "python": "python",
     "js": "javascript",
     "javascript": "javascript",
+    "ts": "typescript",
+    "typescript": "typescript",
+    "lua": "lua",
+    "love": "lua",
 }
 
 
@@ -126,6 +130,7 @@ def _plan_assets(
     warn,
     *,
     svg_policy: str = "passthrough",
+    svg_runtime: str = "pygame",
 ) -> AssetPlan:
     """Collect output files and per-costume mappings, applying the SVG policy.
 
@@ -135,7 +140,8 @@ def _plan_assets(
       draw become PNGs; simple ones stay vector.
 
     Rasterized costumes get their geometry multiplied by ``RASTER_ZOOM`` so
-    display sizes and anchors match the original vector.
+    display sizes and anchors match the original vector. ``svg_runtime`` only
+    names the consuming runtime in warnings.
     """
     plan = AssetPlan()
     emitted: dict[str, str] = {}
@@ -163,7 +169,7 @@ def _plan_assets(
                 continue
             png = rasterize(data)
             if png is None:
-                runtime_name = "pygame" if svg_policy == "rasterize" else "SDL"
+                runtime_name = svg_runtime if svg_policy == "rasterize" else "SDL"
                 warn(
                     f"costume {costume.name!r}: SVG could not be rasterized; kept as .svg "
                     f"(the {runtime_name} runtime cannot draw it)"
