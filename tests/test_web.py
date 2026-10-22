@@ -79,6 +79,18 @@ def test_typescript_target_files_without_browser_build(sb3_path: Path):
     assert result["log"] == []
 
 
+def test_godot_target_project_files(sb3_path: Path):
+    result = web_convert(sb3_path.read_bytes(), lang="godot")
+    assert "project.godot" in result["files"]
+    assert "main.tscn" in result["files"]
+    assert "runtime.gd" in result["files"]
+    assert result["entrypoint"] == "project.godot"
+    assert result["html"] is None  # a Godot project opens in the editor
+    assert result["log"] == []  # no build step
+    with zipfile.ZipFile(io.BytesIO(result["zip"])) as archive:
+        assert "original.sb3" in archive.namelist()
+
+
 def test_web_run_job_json_bridge(sb3_path: Path):
     payload = memoryview(sb3_path.read_bytes())
     job = json.dumps({"lang": "javascript", "scale": 1, "fps": 30, "name": "bridge"})

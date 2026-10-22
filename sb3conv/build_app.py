@@ -9,7 +9,9 @@
 
 ``ToolchainMissing`` (a :class:`BackendError`) signals that an optional
 toolchain is not installed; callers may turn that into a warning instead of a
-hard failure.
+hard failure. ``NoBuildStep`` (also a :class:`BackendError`) means the target
+needs no packaging at all (e.g. the Godot project folder opens directly in
+the editor) and callers may skip silently.
 """
 
 from __future__ import annotations
@@ -42,6 +44,10 @@ _DATA_URI_TYPES = {
 
 class ToolchainMissing(BackendError):
     """The toolchain needed for the requested build is not installed."""
+
+
+class NoBuildStep(BackendError):
+    """The target has no packaging step - the converted folder is the app."""
 
 
 def _exe_name(name: str) -> str:
@@ -298,4 +304,4 @@ def build_app(out_dir: Path | str, *, lang: str, name: str, console: bool = Fals
         return build_typescript_app(out_dir, name=name)
     if lang in ("lua", "love"):
         return build_love_app(out_dir, name=name)
-    raise BackendError(f"no build step for target {lang!r}")
+    raise NoBuildStep(f"no build step for target {lang!r}")

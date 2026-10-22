@@ -33,6 +33,9 @@ LANG_ALIASES = {
     "typescript": "typescript",
     "lua": "lua",
     "love": "lua",
+    "godot": "godot",
+    "gd": "godot",
+    "gdscript": "godot",
 }
 
 

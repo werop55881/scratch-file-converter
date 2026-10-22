@@ -37,6 +37,7 @@ include = ["sb3conv*"]
 "sb3conv.backends.c" = ["runtime_src.c", "runtime_src.h", "vendor/nanosvg/*.txt", "vendor/nanosvg/*.h"]
 "sb3conv.backends.javascript" = ["runtime_src.js"]
 "sb3conv.backends.lua" = ["runtime_src.lua"]
+"sb3conv.backends.godot" = ["runtime_src.gd", "scratch.gd"]
 
 [tool.ruff]
 line-length = 100

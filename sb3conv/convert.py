@@ -7,7 +7,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from sb3conv.backends import get_backend
-from sb3conv.build_app import ToolchainMissing, build_app
+from sb3conv.build_app import NoBuildStep, ToolchainMissing, build_app
 from sb3conv.errors import Sb3Error
 from sb3conv.sb3 import Archive, Project, load_project
 
@@ -17,6 +17,7 @@ _BUILD_MESSAGES = {
     "javascript": "building single-file html...",
     "typescript": "compiling typescript + building html...",
     "lua": "packing .love archive...",
+    "godot": "no build step: open the project folder in Godot 4...",
 }
 
 
@@ -128,6 +129,8 @@ def convert(
             progress(_BUILD_MESSAGES.get(backend.name, "building app..."))
         try:
             artifact = build_app(out, lang=backend.name, name=input_path.stem)
+        except NoBuildStep:
+            pass  # the progress line already explained it (e.g. Godot)
         except ToolchainMissing as exc:
             warnings.append(f"app build skipped: {exc}")
 

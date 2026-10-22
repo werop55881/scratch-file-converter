@@ -50,7 +50,15 @@ class BackendSpec:
 
 
 _REGISTRY: dict[str, BackendSpec] = {}
-_ALIASES = {"py": "python", "js": "javascript", "cc": "c", "ts": "typescript", "love": "lua"}
+_ALIASES = {
+    "py": "python",
+    "js": "javascript",
+    "cc": "c",
+    "ts": "typescript",
+    "love": "lua",
+    "gd": "godot",
+    "gdscript": "godot",
+}
 DEFAULT_LANGUAGE = "python"
 
 

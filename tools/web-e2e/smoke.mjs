@@ -81,6 +81,29 @@ if (luaResult.zip.byteLength < 1000) problems.push("lua zip suspiciously small")
 for (const w of luaResult.log) console.log(`lua log: ${w}`);
 for (const w of luaResult.warnings) console.log(`lua warning: ${w}`);
 
+// third job: the godot target must convert in the browser too (project
+// folder straight into a .zip - no build step, no toolchain)
+py.globals.set(
+  "upload_job",
+  JSON.stringify({ lang: "godot", scale: 2, fps: 30, name: "fighting-game" }),
+);
+const godotProxy = await py.runPythonAsync("web_run_job(upload_bytes, upload_job)");
+const godotResult = godotProxy.toJs({ dict_converter: Object.fromEntries });
+godotProxy.destroy();
+const godotNames = Object.keys(godotResult.files);
+console.log(
+  `godot: ${godotNames.length} files, zip ${godotResult.zip.byteLength} bytes, ` +
+    `html ${godotResult.html ? "yes" : "no"}`,
+);
+if (!godotNames.includes("project.godot")) problems.push("godot target: no project.godot");
+if (!godotNames.includes("main.tscn")) problems.push("godot target: no main.tscn");
+if (!godotNames.includes("runtime.gd")) problems.push("godot target: no runtime.gd");
+if (!godotNames.includes("scripts.gd")) problems.push("godot target: no scripts.gd");
+if (godotResult.html) problems.push("godot target: unexpected play html");
+if (godotResult.zip.byteLength < 1000) problems.push("godot zip suspiciously small");
+for (const w of godotResult.log) console.log(`godot log: ${w}`);
+for (const w of godotResult.warnings) console.log(`godot warning: ${w}`);
+
 if (problems.length) {
   console.error(`FAIL: ${problems.join("; ")}`);
   process.exit(1);

@@ -19,7 +19,7 @@ from typing import Any
 from sb3conv.convert import convert
 from sb3conv.errors import Sb3Error
 
-VALID_LANGS = ("python", "javascript", "c", "typescript", "lua")
+VALID_LANGS = ("python", "javascript", "c", "typescript", "lua", "godot")
 
 # builds that work in the browser (pure Python/zip, no local toolchains)
 _BROWSER_BUILDS = ("javascript", "lua")

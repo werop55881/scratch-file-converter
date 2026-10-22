@@ -19,6 +19,9 @@ Convert Scratch `.sb3` projects into runnable applications:
   into a standalone `.exe`.
 - **Lua** — a [LÖVE](https://love2d.org) game: coroutines drive the same
   runtime semantics, packed into a single `.love` file (`love project.love`).
+- **Godot** — a Godot 4 project (`project.godot` + GDScript): open the output
+  folder in the Godot editor and press Play. No build step needed; SVG
+  costumes import natively.
 
 ## SVG costumes
 
@@ -35,13 +38,16 @@ SVG costumes work in every target, each using the most efficient path:
   pygame cannot load SVG directly.
 - **TypeScript** inherits the JavaScript policy (`.svg` kept for the browser).
 - **Lua** rasterizes to PNG like Python — the LÖVE runtime draws bitmaps.
+- **Godot** keeps the original `.svg` — the Godot editor imports SVG
+  natively.
 
 ## Usage
 
 ```sh
-sb3conv convert project.sb3 -o out --lang python    # or javascript / c / ts / lua
+sb3conv convert project.sb3 -o out --lang python    # or javascript / c / ts / lua / godot
 sb3conv convert project.sb3 -o out --lang javascript --exe   # single-file html
 sb3conv convert project.sb3 -o out --lang lua --exe          # single-file .love
+sb3conv convert project.sb3 -o out --lang godot               # open out/ in Godot 4
 sb3conv pack out -o project.sb3                         # rebuild the .sb3 (round trip)
 sb3conv gui                                            # desktop app
 ```
@@ -70,12 +76,14 @@ pure-Python wheel; `sb3conv/web.py` is the bridge (tests in
 headless). `.github/workflows/pages.yml` builds and deploys with GitHub
 Pages.
 
-Targets: JavaScript gets **Play now**; Python, C and TypeScript download as
-project folders (no `.exe`/`tsc` builds in the browser — TypeScript still
-emits all `.ts` sources plus a `tsconfig.json`). Lua builds a downloadable
-`.love` archive in the browser (pure zip), which plays in LÖVE rather than
-the page. SVG costumes rasterize only in the desktop app (Pyodide has no
-resvg) — the JavaScript target renders vectors natively anyway.
+Targets: JavaScript gets **Play now**; Python, C, TypeScript and Godot
+download as project folders (no `.exe`/`tsc` builds in the browser —
+TypeScript still emits all `.ts` sources plus a `tsconfig.json`, and the
+Godot target ships a ready-to-open `project.godot`). Lua builds a
+downloadable `.love` archive in the browser (pure zip), which plays in LÖVE
+rather than the page. SVG costumes rasterize only in the desktop app
+(Pyodide has no resvg) — the JavaScript and Godot targets render vectors
+natively anyway.
 
 ## Development
 
