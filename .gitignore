@@ -16,4 +16,5 @@ game/star-game-*/
 signed-artifact/
 web/vendor/
 dist-wheel/
+*.love
 
