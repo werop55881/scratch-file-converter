@@ -109,6 +109,7 @@ def build_executable(out_dir: Path | str, *, exe_name: str = "game.exe") -> Path
         "runtime.c",
         "-std=c11",
         "-Wall",
+        "-O2",
         f"-I{sdl / 'include'}",
         f"-L{sdl / 'lib'}",
         *LINK_LIBS,
@@ -361,7 +362,7 @@ def _makefile_source() -> str:
         "ZIG ?= zig\n"
         "CC = $(ZIG) cc\n"
         "OUT ?= game.exe\n"
-        "CFLAGS = -std=c11 -Wall -I$(SDL2_HOME)/include\n"
+        "CFLAGS = -std=c11 -Wall -O2 -I$(SDL2_HOME)/include\n"
         "LDFLAGS = -L$(SDL2_HOME)/lib"
         " -lmingw32 -lmingwex -lSDL2main -lSDL2 -lSDL2_image -lSDL2_ttf -lSDL2_mixer"
         " -lmsvcrt -lgdi32 -lwinmm -limm32 -lole32 -loleaut32 -lsetupapi -lversion"
