@@ -5,12 +5,16 @@ from __future__ import annotations
 import argparse
 import subprocess
 import sys
+import time
+from collections.abc import Callable
+from pathlib import Path
 
 from sb3conv.backends import available_languages, get_backend
 from sb3conv.convert import convert
 from sb3conv.errors import BackendError, Sb3Error
 
 PROG = "sb3conv"
+_WATCH_POLL_SECONDS = 0.5
 
 
 def _add_common(parser: argparse.ArgumentParser) -> None:
@@ -39,6 +43,11 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="also build a playable app (.exe for python/c, one .html for js)",
     )
+    convert_parser.add_argument(
+        "--watch",
+        action="store_true",
+        help="keep re-converting when the .sb3 changes (Ctrl+C to stop)",
+    )
 
     run_parser = sub.add_parser("run", help="convert an .sb3 and run it")
     _add_common(run_parser)
@@ -57,7 +66,7 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
-def _do_convert(args: argparse.Namespace):
+def _convert_once(args: argparse.Namespace):
     result = convert(
         args.input,
         args.output,
@@ -80,6 +89,45 @@ def _do_convert(args: argparse.Namespace):
     if skipped:
         print(f"  script languages present: {', '.join(sorted(skipped))} (skipped by {backend_name} backend)")
     return 0
+
+
+def _file_stamp(path: Path) -> tuple[int, int]:
+    stat = path.stat()
+    return (stat.st_mtime_ns, stat.st_size)
+
+
+def _watch_loop(
+    source: Path,
+    convert_once: Callable[[], int],
+    *,
+    poll: float = _WATCH_POLL_SECONDS,
+) -> int:
+    """Re-run ``convert_once`` whenever ``source`` changes; Ctrl+C stops."""
+    print(f"watching {source} for changes (Ctrl+C to stop)", file=sys.stderr)
+    try:
+        while True:
+            stamp = _file_stamp(source)
+            while _file_stamp(source) == stamp:
+                time.sleep(poll)
+            print("--- change detected, re-converting ---", file=sys.stderr)
+            try:
+                code = convert_once()
+            except (Sb3Error, OSError) as exc:
+                # the editor may be mid-save; keep watching instead of dying
+                print(f"error: {exc} (still watching)", file=sys.stderr)
+                continue
+            if code:
+                return code
+    except KeyboardInterrupt:
+        print("\nstopped watching", file=sys.stderr)
+        return 0
+
+
+def _do_convert(args: argparse.Namespace):
+    code = _convert_once(args)
+    if code or not args.watch:
+        return code
+    return _watch_loop(Path(args.input), lambda: _convert_once(args))
 
 
 def _do_run(args: argparse.Namespace) -> int:

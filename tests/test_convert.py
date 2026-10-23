@@ -107,3 +107,56 @@ def test_parse_script_lang_accepts_commas_and_rejects_garbage():
     assert parse_script_lang(None) == {}
     with pytest.raises(Sb3Error):
         parse_script_lang(["Star"])
+
+
+def test_watch_flag_parses():
+    from sb3conv.cli import build_parser
+
+    args = build_parser().parse_args(["convert", "x.sb3", "--watch"])
+    assert args.watch is True
+    assert build_parser().parse_args(["convert", "x.sb3"]).watch is False
+
+
+def test_watch_loop_reconverts_on_change(monkeypatch, tmp_path: Path, capsys):
+    from sb3conv import cli
+
+    # _file_stamp is polled twice per wait cycle; values advance A->B then C->D
+    stamps = iter([(1, 1), (1, 1), (2, 2), (3, 3), (3, 3), (4, 4)])
+    monkeypatch.setattr(cli, "_file_stamp", lambda _path: next(stamps))
+    monkeypatch.setattr(cli.time, "sleep", lambda _seconds: None)
+
+    calls: list[int] = []
+
+    def convert_once() -> int:
+        calls.append(1)
+        if len(calls) >= 2:
+            raise KeyboardInterrupt
+        return 0
+
+    code = cli._watch_loop(tmp_path / "x.sb3", convert_once, poll=0)
+    assert code == 0
+    assert len(calls) == 2
+    assert "change detected" in capsys.readouterr().err
+
+
+def test_watch_loop_keeps_going_after_a_bad_save(monkeypatch, tmp_path: Path, capsys):
+    from sb3conv import cli
+
+    stamps = iter([(1, 1), (1, 1), (2, 2), (3, 3), (3, 3), (4, 4)])
+    monkeypatch.setattr(cli, "_file_stamp", lambda _path: next(stamps))
+    monkeypatch.setattr(cli.time, "sleep", lambda _seconds: None)
+
+    calls: list[int] = []
+
+    def convert_once() -> int:
+        calls.append(1)
+        if len(calls) == 1:
+            raise Sb3Error("zip bad - editor still saving")
+        raise KeyboardInterrupt
+
+    code = cli._watch_loop(tmp_path / "x.sb3", convert_once, poll=0)
+    assert code == 0
+    assert len(calls) == 2
+    captured = capsys.readouterr()
+    assert "still watching" in captured.err
+    assert "stopped watching" in captured.err
