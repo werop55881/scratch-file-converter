@@ -19,7 +19,7 @@ import subprocess
 import tempfile
 from pathlib import Path
 
-from sb3conv.backends.base import BackendSpec, EmitResult, OutputFile
+from sb3conv.backends.base import BackendSpec, EmitResult, OutputFile, WarningSink
 from sb3conv.backends.c.exprs import c_str, format_number
 from sb3conv.backends.c.stmts import StatementEmitter, value_params
 from sb3conv.backends.python import (
@@ -405,10 +405,8 @@ def _check_c(main_source: str, runtime_header: str) -> None:
 
 
 def emit_c(project: Project, options: dict) -> EmitResult:
-    warnings: list[str] = []
-
-    def warn(message: str) -> None:
-        warnings.append(message)
+    sink = WarningSink()
+    warn = sink
 
     overrides = dict(options.get("script_lang") or {})
     assets: dict[str, bytes] = dict(options.get("assets") or {})
@@ -486,7 +484,8 @@ def emit_c(project: Project, options: dict) -> EmitResult:
     ]
     return EmitResult(
         files=files,
-        warnings=warnings,
+        warnings=sink.warnings,
+        unsupported=sink.unsupported,
         entrypoint="main.c",
         script_languages=script_languages,
     )

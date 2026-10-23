@@ -22,7 +22,7 @@ import re
 import shutil
 from pathlib import Path
 
-from sb3conv.backends.base import BackendSpec, EmitResult, OutputFile
+from sb3conv.backends.base import BackendSpec, EmitResult, OutputFile, WarningSink
 from sb3conv.backends.godot.stmts import StatementEmitter, godot_str
 from sb3conv.backends.python import _manifest, _plan_assets, _route_fields, _script_language
 from sb3conv.sb3.model import Project
@@ -167,10 +167,8 @@ _GITIGNORE = """\
 
 
 def emit_godot(project: Project, options: dict) -> EmitResult:
-    warnings: list[str] = []
-
-    def warn(message: str) -> None:
-        warnings.append(message)
+    sink = WarningSink()
+    warn = sink
 
     overrides = dict(options.get("script_lang") or {})
     assets: dict[str, bytes] = dict(options.get("assets") or {})
@@ -230,7 +228,8 @@ def emit_godot(project: Project, options: dict) -> EmitResult:
     ]
     return EmitResult(
         files=files,
-        warnings=warnings,
+        warnings=sink.warnings,
+        unsupported=sink.unsupported,
         entrypoint="project.godot",
         script_languages=script_languages,
     )

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -65,6 +66,68 @@ def default_output_dir(input_path: Path, lang: str) -> Path:
     return input_path.with_name(f"{input_path.stem}-{lang}")
 
 
+def _group_unsupported(
+    unsupported: list[tuple[str, str]],
+) -> list[tuple[str, list[tuple[str, int]]]]:
+    """Group (opcode, location) pairs: [(opcode, [(location, count)...])...] by count."""
+    counts: dict[str, dict[str, int]] = {}
+    for opcode, where in unsupported:
+        locations = counts.setdefault(opcode, {})
+        locations[where] = locations.get(where, 0) + 1
+    grouped = [
+        (opcode, sorted(locations.items(), key=lambda item: (-item[1], item[0])))
+        for opcode, locations in counts.items()
+    ]
+    grouped.sort(key=lambda item: (-sum(count for _, count in item[1]), item[0]))
+    return grouped
+
+
+def unsupported_report_text(
+    project_name: str, lang: str, unsupported: list[tuple[str, str]]
+) -> str:
+    """Human-readable unsupported-block report (the ``unsupported.txt`` file)."""
+    grouped = _group_unsupported(unsupported)
+    lines = [
+        "sb3conv unsupported-block report",
+        f"project: {project_name}",
+        f"target: {lang}",
+        "",
+        "These Scratch blocks could not be translated and became no-ops:",
+        "",
+    ]
+    for opcode, locations in grouped:
+        opcode_total = sum(count for _, count in locations)
+        lines.append(f"  {opcode} ({opcode_total}x)")
+        for where, count in locations:
+            lines.append(f"    {where}" + (f" x{count}" if count > 1 else ""))
+    lines += [
+        "",
+        f"total: {len(unsupported)} unsupported blocks, {len(grouped)} distinct opcodes",
+    ]
+    return "\n".join(lines) + "\n"
+
+
+def unsupported_report_json(
+    project_name: str, lang: str, unsupported: list[tuple[str, str]]
+) -> str:
+    """Machine-readable variant of the report (the ``unsupported.json`` file)."""
+    grouped = _group_unsupported(unsupported)
+    payload = {
+        "project": project_name,
+        "target": lang,
+        "opcodes": [
+            {
+                "opcode": opcode,
+                "count": sum(count for _, count in locations),
+                "locations": [{"where": where, "count": count} for where, count in locations],
+            }
+            for opcode, locations in grouped
+        ],
+        "total": len(unsupported),
+    }
+    return json.dumps(payload, indent=2, ensure_ascii=False) + "\n"
+
+
 def convert(
     input_path: str | Path,
     output_dir: str | Path | None = None,
@@ -123,6 +186,21 @@ def convert(
     written.append("original.sb3")
 
     warnings = list(result.warnings)
+    if result.unsupported:
+        (out / "unsupported.txt").write_text(
+            unsupported_report_text(input_path.stem, backend.name, result.unsupported),
+            encoding="utf-8",
+        )
+        (out / "unsupported.json").write_text(
+            unsupported_report_json(input_path.stem, backend.name, result.unsupported),
+            encoding="utf-8",
+        )
+        written += ["unsupported.txt", "unsupported.json"]
+        distinct = len({opcode for opcode, _ in result.unsupported})
+        warnings.append(
+            f"{len(result.unsupported)} unsupported blocks ({distinct} distinct opcodes)"
+            " - see unsupported.txt"
+        )
     artifact: Path | None = None
     if build_exe:
         if progress is not None:

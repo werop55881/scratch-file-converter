@@ -24,7 +24,7 @@ import subprocess
 import tempfile
 from pathlib import Path
 
-from sb3conv.backends.base import BackendSpec, EmitResult, OutputFile
+from sb3conv.backends.base import BackendSpec, EmitResult, OutputFile, WarningSink
 from sb3conv.backends.javascript import RUNTIME_SOURCE, _index_source, _main_source
 from sb3conv.backends.javascript.stmts import StatementEmitter
 from sb3conv.backends.python import _manifest, _plan_assets, _route_fields, _script_language
@@ -70,10 +70,8 @@ def _check_ts(sources: dict[str, str]) -> None:
 
 
 def emit_typescript(project: Project, options: dict) -> EmitResult:
-    warnings: list[str] = []
-
-    def warn(message: str) -> None:
-        warnings.append(message)
+    sink = WarningSink()
+    warn = sink
 
     overrides = dict(options.get("script_lang") or {})
     assets: dict[str, bytes] = dict(options.get("assets") or {})
@@ -128,7 +126,8 @@ def emit_typescript(project: Project, options: dict) -> EmitResult:
     ]
     return EmitResult(
         files=files,
-        warnings=warnings,
+        warnings=sink.warnings,
+        unsupported=sink.unsupported,
         entrypoint="index.html",
         script_languages=script_languages,
     )
