@@ -48,12 +48,21 @@ sb3conv convert project.sb3 -o out --lang python    # or javascript / c / ts / l
 sb3conv convert project.sb3 -o out --lang javascript --exe   # single-file html
 sb3conv convert project.sb3 -o out --lang lua --exe          # single-file .love
 sb3conv convert project.sb3 -o out --lang godot               # open out/ in Godot 4
+sb3conv convert project.sb3 -o out --lang lua --watch         # re-convert on every save
 sb3conv pack out -o project.sb3                         # rebuild the .sb3 (round trip)
 sb3conv gui                                            # desktop app
 ```
 
 The GUI has a **Build playable app (.exe / .html)** checkbox (on by default)
 that packages the converted project so it can be distributed as one file.
+
+## Unsupported blocks
+
+When a Scratch block has no equivalent in the target language, the converter
+replaces it with a no-op and keeps going. Every conversion that hits one also
+writes `unsupported.txt` (and a machine-readable `unsupported.json`) into the
+output directory: each opcode with how often it occurs and where it lives
+(sprite plus script position), so you can see exactly what to fix in Scratch.
 
 ## Round trip
 
@@ -97,7 +106,8 @@ pytest
 
 Prebuilt Windows builds (the GUI `.exe`) are attached to every release and
 workflow run. Builds are currently unsigned — machines with Windows Smart
-App Control may show a warning until the file builds reputation.
+App Control may show a warning until the file builds reputation. Scoop and
+winget manifests for the exe live in [`packaging/`](packaging/README.md).
 
 ## License
 

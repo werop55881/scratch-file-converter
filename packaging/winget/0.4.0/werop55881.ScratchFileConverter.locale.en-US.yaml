@@ -1,0 +1,21 @@
+# yaml-language-server: $schema=https://aka.ms/winget-manifest.defaultLocale.1.9.0.schema.json
+PackageIdentifier: werop55881.ScratchFileConverter
+PackageVersion: 0.4.0
+PackageLocale: en-US
+Publisher: werop55881
+PackageName: Scratch File Converter
+PackageUrl: https://github.com/werop55881/scratch-file-converter
+License: MIT OR Apache-2.0 OR GPL-3.0
+LicenseUrl: https://github.com/werop55881/scratch-file-converter#license
+ShortDescription: Turn Scratch projects into real apps.
+Description: Converts Scratch .sb3 projects into runnable applications - Python (pygame), JavaScript, TypeScript, C (SDL2), Lua (LOVE) or Godot 4 - with a desktop GUI and an in-browser web app.
+Tags:
+  - scratch
+  - converter
+  - game
+  - python
+  - javascript
+  - lua
+  - godot
+ManifestType: defaultLocale
+ManifestVersion: 1.9.0

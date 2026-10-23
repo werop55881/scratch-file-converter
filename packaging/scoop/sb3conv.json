@@ -1,0 +1,13 @@
+{
+  "version": "0.4.0",
+  "description": "Turn Scratch projects into real apps - convert .sb3 projects into Python, JavaScript, TypeScript, C, Lua (LOVE) or Godot.",
+  "homepage": "https://github.com/werop55881/scratch-file-converter",
+  "license": "MIT OR Apache-2.0 OR GPL-3.0",
+  "url": "https://github.com/werop55881/scratch-file-converter/releases/download/v0.4.0/sb3conv-gui.exe",
+  "hash": "2d7b339c7f68abb7f5dc69b581e9b42ebd189f0ff04aba99a7d13227102bfaa2",
+  "bin": "sb3conv-gui.exe",
+  "checkver": "github",
+  "autoupdate": {
+    "url": "https://github.com/werop55881/scratch-file-converter/releases/download/v$version/sb3conv-gui.exe"
+  }
+}

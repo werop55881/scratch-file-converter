@@ -1,0 +1,12 @@
+# yaml-language-server: $schema=https://aka.ms/winget-manifest.installer.1.9.0.schema.json
+PackageIdentifier: werop55881.ScratchFileConverter
+PackageVersion: 0.4.0
+ManifestType: installer
+ManifestVersion: 1.9.0
+InstallerType: portable
+Installers:
+  - Architecture: x64
+    InstallerUrl: https://github.com/werop55881/scratch-file-converter/releases/download/v0.4.0/sb3conv-gui.exe
+    InstallerSha256: 2D7B339C7F68ABB7F5DC69B581E9B42EBD189F0FF04ABA99A7D13227102BFAA2
+Commands:
+  - sb3conv-gui
