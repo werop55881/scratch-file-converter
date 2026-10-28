@@ -18,3 +18,4 @@ web/vendor/
 dist-wheel/
 *.love
 
+version_info.txt

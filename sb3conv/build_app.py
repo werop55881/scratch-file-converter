@@ -88,8 +88,8 @@ def _python_build_command() -> list[str] | None:
 _VERSION_TEMPLATE = """# UTF-8
 VSVersionInfo(
   ffi=FixedFileInfo(
-    filevers=(0, 4, 0, 0),
-    prodvers=(0, 4, 0, 0),
+    filevers=%(filevers)s,
+    prodvers=%(filevers)s,
     mask=0x3F, flags=0x0, OS=0x40004, fileType=0x1, subtype=0x0, date=(0, 0)
   ),
   kids=[
@@ -97,11 +97,11 @@ VSVersionInfo(
       [StringTable('040904B0', [
         StringStruct('CompanyName', 'Scratch File Converter'),
         StringStruct('FileDescription', %(desc)r),
-        StringStruct('FileVersion', '0.4.0.0'),
+        StringStruct('FileVersion', '%(version)s'),
         StringStruct('InternalName', %(internal)r),
         StringStruct('OriginalFilename', %(original)r),
         StringStruct('ProductName', %(desc)r),
-        StringStruct('ProductVersion', '0.4.0.0'),
+        StringStruct('ProductVersion', '%(version)s'),
       ])]
     ),
     VarFileInfo([VarStruct('Translation', [1033, 1200])]),
@@ -112,10 +112,22 @@ VSVersionInfo(
 
 def _write_version_file(out_dir: Path, name: str) -> str:
     """Version resource for the .exe (metadata helps antivirus reputation)."""
+    from sb3conv import __version__
+
+    numbers = [int(part) for part in __version__.split(".")]
+    while len(numbers) < 3:
+        numbers.append(0)
+    filevers = f"({numbers[0]}, {numbers[1]}, {numbers[2]}, 0)"
     path = out_dir / "sb3conv_version_info.txt"
     path.write_text(
         _VERSION_TEMPLATE
-        % {"desc": name, "internal": name, "original": _exe_name(name)},
+        % {
+            "desc": name,
+            "internal": name,
+            "original": _exe_name(name),
+            "filevers": filevers,
+            "version": f"{numbers[0]}.{numbers[1]}.{numbers[2]}.0",
+        },
         encoding="utf-8",
     )
     return str(path)
