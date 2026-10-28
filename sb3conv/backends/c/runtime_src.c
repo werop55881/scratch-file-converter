@@ -2602,6 +2602,11 @@ int sb_run(const SbProject *proj, int argc, char **argv, const ScriptReg *script
 
   if (rt->smoke) {
     printf("SMOKE OK frames=%lld threads=%d\n", (long long)rt->frame, rt->nthreads);
+    for (int j = 0; j < rt->stage_def->nvars; j++) {
+      char value[SB_STR_CAP];
+      s_str_into(rt->stage_def->vars[j].value, value, sizeof value);
+      printf("SBSTATE %s=%s\n", rt->stage_def->vars[j].name, value);
+    }
   }
   if (rt->dump_vars) dump_state(rt);
   fflush(stdout);

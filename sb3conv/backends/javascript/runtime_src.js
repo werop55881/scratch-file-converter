@@ -333,10 +333,10 @@ class Costume {
     this.cx = Number(data.cx || 0) / this.resolution;
     this.cy = Number(data.cy || 0) / this.resolution;
     this.missing = false;
-    this.image = new Image();
+    this.image = typeof Image !== "undefined" ? new Image() : null;
     this.fallback = null;
     const file = String(data.file || "");
-    if (!file) {
+    if (!file || !this.image) {
       this.missing = true;
       this._make_fallback();
     } else {
@@ -349,6 +349,7 @@ class Costume {
   }
 
   _make_fallback() {
+    if (typeof document === "undefined") return; // node smoke: no canvas
     const canvas = document.createElement("canvas");
     canvas.width = 32;
     canvas.height = 32;
@@ -359,19 +360,19 @@ class Costume {
   }
 
   get source() {
-    if (!this.missing && this.image.complete && this.image.naturalWidth > 0) return this.image;
+    if (!this.missing && this.image && this.image.complete && this.image.naturalWidth > 0) return this.image;
     return this.fallback;
   }
 
   get width() {
-    if (this.image.complete && this.image.naturalWidth > 0) {
+    if (this.image && this.image.complete && this.image.naturalWidth > 0) {
       return this.image.naturalWidth / this.resolution;
     }
     return this.fallback ? this.fallback.width : 32;
   }
 
   get height() {
-    if (this.image.complete && this.image.naturalHeight > 0) {
+    if (this.image && this.image.complete && this.image.naturalHeight > 0) {
       return this.image.naturalHeight / this.resolution;
     }
     return this.fallback ? this.fallback.height : 32;
@@ -416,11 +417,13 @@ class Costume {
 class SoundAsset {
   constructor(data, assetsDir) {
     this.name = String(data.name || "sound");
-    this.audio = new Audio(assetUrl(assetsDir, String(data.file || "")));
-    this.audio.preload = "auto";
+    const file = String(data.file || "");
+    this.audio = typeof Audio !== "undefined" ? new Audio(assetUrl(assetsDir, file)) : null;
+    if (this.audio) this.audio.preload = "auto";
   }
 
   play(volume, pitch) {
+    if (!this.audio) return null; // node smoke: no audio
     const node = this.audio.cloneNode(true);
     node.volume = Math.max(0, Math.min(1, volume));
     node.playbackRate = Math.max(0.05, (100 + pitch) / 100);
@@ -1085,7 +1088,7 @@ class Runtime {
     const volume = Math.max(0, Math.min(1, actor.volume / 100));
     const pitch = actor.sound_effects.PITCH || 0;
     const node = sound.play(volume, pitch);
-    this._active_audio.push(node);
+    if (node) this._active_audio.push(node);
     return node;
   }
 
@@ -1575,6 +1578,12 @@ class Runtime {
   // ------------------------------------------------------------------
   // main loop
   // ------------------------------------------------------------------
+  print_state() {
+    for (const name of Object.keys(this.vars).sort()) {
+      console.log(`SBSTATE ${name}=${s_str(this.vars[name])}`);
+    }
+  }
+
   run() {
     const manifest = this.manifest;
     this.canvas = document.getElementById("stage");
@@ -1605,6 +1614,7 @@ class Runtime {
           const line = `SMOKE OK frames=${this.frame} threads=${this.threads.length}`;
           console.log(line);
           document.title = line; // readable via --dump-dom in headless browsers
+          this.print_state();
           return;
         }
       }
@@ -1663,6 +1673,17 @@ function _wrap_text(text, width) {
 
 function run(scripts, manifest, options = {}) {
   if (typeof document === "undefined") {
+    // headless smoke: node with env SB3CONV_SMOKE=N steps frames without a DOM
+    const smoke =
+      typeof process !== "undefined" ? Number((process.env || {}).SB3CONV_SMOKE || 0) : 0;
+    if (smoke > 0) {
+      const runtime = new Runtime(manifest, scripts, { ...options, smoke });
+      runtime.green_flag();
+      while (runtime.frame < smoke) runtime.step();
+      console.log(`SMOKE OK frames=${runtime.frame} threads=${runtime.threads.length}`);
+      runtime.print_state();
+      return runtime;
+    }
     console.error("runtime: no DOM available; open index.html in a browser");
     return null;
   }

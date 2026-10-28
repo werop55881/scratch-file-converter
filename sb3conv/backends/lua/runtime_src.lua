@@ -2077,6 +2077,7 @@ function M.run(scripts, manifest, options)
     print("runtime: no LÖVE available; run the project with: love .")
     return nil
   end
+  local smoke_target = tonumber(os.getenv("SB3CONV_SMOKE") or "") or 0
   local runtime = Runtime.new(manifest, scripts, options or {})
 
   function love.load()
@@ -2097,6 +2098,22 @@ function M.run(scripts, manifest, options)
       runtime._acc = runtime._acc - runtime.frame_time
       runtime:step()
       guard = guard + 1
+      if smoke_target > 0 and runtime.frame >= smoke_target then
+        break
+      end
+    end
+    if smoke_target > 0 and runtime.frame >= smoke_target then
+      print(("SMOKE OK frames=%d threads=%d"):format(runtime.frame, #runtime.threads))
+      local names = {}
+      for key in pairs(runtime.vars) do
+        names[#names + 1] = key
+      end
+      table.sort(names)
+      for _, key in ipairs(names) do
+        print(("SBSTATE %s=%s"):format(tostring(key), tostring(runtime.vars[key])))
+      end
+      love.event.quit(0)
+      return
     end
   end
 

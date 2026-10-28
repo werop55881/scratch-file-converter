@@ -29,6 +29,8 @@ class ThreadState:
 	extends RefCounted
 	var actor = null
 	var done := false
+	var started := false
+	var reg: Dictionary = {}
 
 
 class Costume:
@@ -494,8 +496,8 @@ func spawn(reg: Dictionary, actor) -> ThreadState:
 		return null
 	var state := ThreadState.new()
 	state.actor = actor
+	state.reg = reg
 	threads.append(state)
-	_drive(state, reg)
 	return state
 
 
@@ -579,6 +581,12 @@ func step() -> void:
 	timer += frame_time
 	_check_greater_than()
 	tick.emit()
+	# drive threads spawned but not yet started (lazy, matches other backends)
+	for state in threads:
+		var ts := state as ThreadState
+		if not ts.started and not ts.done:
+			ts.started = true
+			_drive(ts, ts.reg)
 	var alive: Array = []
 	for state in threads:
 		if not (state as ThreadState).done:
@@ -586,7 +594,13 @@ func step() -> void:
 	threads = alive
 	if smoke > 0 and frame >= smoke:
 		print("SMOKE OK frames=%d threads=%d" % [frame, threads.size()])
+		var names := vars.keys()
+		names.sort()
+		for name in names:
+			print("SBSTATE %s=%s" % [str(name), str(vars[name])])
+		_acc = 0.0
 		get_tree().quit(0)
+		return
 
 
 func _check_greater_than() -> void:

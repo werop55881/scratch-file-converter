@@ -1802,6 +1802,8 @@ class Runtime:
                 f"SMOKE OK frames={self.frame} threads={len(self.threads)} "
                 f"elapsed={elapsed:.2f}s fps={self.frame / elapsed:.1f}"
             )
+            for name in sorted(self.vars):
+                print(f"SBSTATE {name}={self.vars[name]}")
         if winmm is not None:
             with contextlib.suppress(Exception):
                 winmm.timeEndPeriod(1)
