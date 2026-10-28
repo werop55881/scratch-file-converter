@@ -21,11 +21,33 @@ jobs:
           python-version: '3.14'
       - name: Install
         run: pip install -e ".[dev,package]"
+      - name: Cache zig + SDL2
+        uses: actions/cache@v4
+        with:
+          path: |
+            C:\zig-sdk
+            C:\sdl2-sdk
+          key: c-toolchain-zig-0.16.0-sdl2-2.30.10-windows
+      - name: Install zig + SDL2 (for the C backend tests)
+        shell: pwsh
+        run: |
+          if (-not (Test-Path C:\zig-sdk\zig.exe)) {
+            curl.exe -sSL -o $env:RUNNER_TEMP\zig.zip https://ziglang.org/download/0.16.0/zig-x86_64-windows-0.16.0.zip
+            New-Item -ItemType Directory -Path C:\zig-sdk | Out-Null
+            tar -xf $env:RUNNER_TEMP\zig.zip -C C:\zig-sdk --strip-components=1
+          }
+          if (-not (Test-Path C:\sdl2-sdk\include)) {
+            curl.exe -sSL -o $env:RUNNER_TEMP\sdl2.tar.gz https://github.com/libsdl-org/SDL/releases/download/release-2.30.10/SDL2-devel-2.30.10-mingw.tar.gz
+            tar -xzf $env:RUNNER_TEMP\sdl2.tar.gz -C $env:RUNNER_TEMP
+            New-Item -ItemType Directory -Path C:\sdl2-sdk | Out-Null
+            Copy-Item -Recurse $env:RUNNER_TEMP\SDL2-devel-2.30.10-mingw\x86_64-w64-mingw32\* C:\sdl2-sdk\
+          }
+          echo "ZIG=C:\zig-sdk\zig.exe" >> $env:GITHUB_ENV
+          echo "SDL2_HOME=C:\sdl2-sdk" >> $env:GITHUB_ENV
       - name: Lint
         run: ruff check .
       - name: Test
-        # test_c needs zig + SDL2 headers; re-enable once the runner has them
-        run: python -m pytest --ignore=tests/test_c.py
+        run: python -m pytest
       - name: Build GUI exe
         run: pyinstaller Sb3ConvGui.spec --noconfirm
       - name: Upload unsigned artifact
